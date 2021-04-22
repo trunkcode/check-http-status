@@ -1,0 +1,21 @@
+branches:
+  only:
+    - main
+dist: xenial
+language: node_js
+node_js:
+  - 10
+  - 11
+  - 12
+  - 13
+  - 14
+  - node
+os:
+  - linux
+  - osx
+install:
+  npm install --dev
+script:
+  - npm run lint
+  - npm run test:sitemap
+  - npm run test:urls
