@@ -1,7 +1,7 @@
 {
   "name": "check-http-status",
   "description": "Check HTTP Status and create a list for all the HTTP status code.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "main": "index.js",
   "files": [
     "LICENSE",
