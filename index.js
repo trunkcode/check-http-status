@@ -15,7 +15,12 @@ async function checkHttpStatus(config) {
     'csv',
     'xlsx',
   ];
+  var skip200 = false;
   var urlsList = [];
+
+  if (config.skip200) {
+    skip200 = true;
+  }
 
   if (!config) {
     console.error('\x1b[31m%s\x1b[0m', 'Error: Missing required Parameters.');
@@ -41,13 +46,17 @@ async function checkHttpStatus(config) {
     process.exit();
   }
 
-  const httpStatusList = await httpList(urlsList, config.options);
+  const httpStatusList = await httpList(urlsList, config.options, skip200);
 
   if (config.export && !config.export.format) {
     config.export.format = 'xlsx';
   }
 
-  if (config.export && allowedExportTypes.includes(config.export.format)) {
+  if (skip200 && httpStatusList.length === 0) {
+    // Add empty line
+    console.log();
+    console.log('\x1b[32m%s\x1b[0m', 'All the URLs are 200 and there is nothing to worry about!');
+  } else if (config.export && allowedExportTypes.includes(config.export.format)) {
     const urlLength = Math.max(...urlsList.map((el) => el.length));
     const rowLength = {
       'errorMessage': 50,

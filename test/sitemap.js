@@ -16,5 +16,6 @@ checkHttpStatus({
       'Accept': 'text/html',
     },
   },
-  'sitemap': 'https://www.trunkcode.com/page-sitemap.xml'
+  'sitemap': 'https://www.trunkcode.com/page-sitemap.xml',
+  'skip200': true,
 });

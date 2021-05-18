@@ -16,6 +16,7 @@ checkHttpStatus({
       'Accept': 'text/html',
     },
   },
+  'skip200': true,
   'urls': [
     'https://trunkcode.com/',
     'https://example.com/',

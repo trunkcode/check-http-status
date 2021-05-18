@@ -39,7 +39,8 @@ checkHttpStatus({
       'Accept': 'text/html',
     },
   },
-  'sitemap': 'https://www.trunkcode.com/page-sitemap.xml'
+  'sitemap': 'https://www.trunkcode.com/page-sitemap.xml',
+  'skip200': true, // Do not report the URLs having HTTP code 200.
 });
 ```
 
@@ -62,6 +63,7 @@ checkHttpStatus({
       'Accept': 'text/html',
     },
   },
+  'skip200': true, // Do not report the URLs having HTTP code 200.
   'urls': [
     'http://trunkcode.com/',
     'https://example.com/',
