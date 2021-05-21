@@ -1,7 +1,7 @@
 'use strict';
 
 const consoleColumns = require('./lib/console-columns');
-const fetchFromSitemap = require('./lib/fetch-from-sitemap');
+const fetchAllSitemaps = require('./lib/fetch-from-sitemap');
 const fs = require('fs');
 const generateExcel = require('./lib/generate-excel');
 const httpList = require('./lib/http-list');
@@ -30,7 +30,7 @@ async function checkHttpStatus(config) {
   }
 
   if (config.sitemap) {
-    urlsList = await fetchFromSitemap(config.sitemap);
+    urlsList = await fetchAllSitemaps(config.sitemap);
   } else if (config.urls && Array.isArray(config.urls)) {
     urlsList = config.urls;
   }
