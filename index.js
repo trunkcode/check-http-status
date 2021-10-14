@@ -9,6 +9,8 @@ const httpList = require('./lib/http-list');
 /**
  * Main function that handles config, and trigger functions according to the
  * config.
+ *
+ * @param object config
  */
 async function checkHttpStatus(config) {
   const allowedExportTypes = [
