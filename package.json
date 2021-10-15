@@ -1,44 +1,45 @@
 {
-  "name": "check-http-status",
-  "description": "Check HTTP Status and create a list for all the HTTP status code.",
-  "version": "1.2.0",
-  "main": "index.js",
-  "files": [
-    "LICENSE",
-    "index.js",
-    "test/runkitExample.js",
-    "lib/*"
-  ],
-  "scripts": {
-    "lint": "eslint .",
-    "test:sitemap": "node test/sitemap.js",
-    "test:urls": "node test/urls.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/trunkcode/check-http-status.git"
-  },
-  "keywords": [
-    "http status",
-    "link checker",
-    "status",
-    "redirects",
-    "301",
-    "404"
-  ],
-  "author": "TrunkCode <support@trunkcode.com> (https://www.trunkcode.com/)",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/trunkcode/check-http-status/issues"
-  },
-  "homepage": "https://github.com/trunkcode/check-http-status",
-  "dependencies": {
-    "axios": "^0.21.1",
-    "columnify": "^1.5.4",
-    "exceljs": "^4.2.0",
-    "xml2js": "^0.4.23"
-  },
-  "devDependencies": {
-    "eslint": "^7.16.0"
-  }
+	"name": "check-http-status",
+	"description": "Check HTTP Status and create a list for all the HTTP status code.",
+	"version": "1.2.0",
+	"main": "index.js",
+	"files": [
+		"LICENSE",
+		"index.js",
+		"test/runkitExample.js",
+		"lib/*"
+	],
+	"scripts": {
+		"lint": "eslint .",
+		"test:sitemaps": "node test/sitemaps.js",
+		"test:sitemaps-urls": "node test/sitemaps-urls.js",
+		"test:urls": "node test/urls.js"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/trunkcode/check-http-status.git"
+	},
+	"keywords": [
+		"http status",
+		"link checker",
+		"status",
+		"redirects",
+		"301",
+		"404"
+	],
+	"author": "TrunkCode <support@trunkcode.com> (https://www.trunkcode.com/)",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/trunkcode/check-http-status/issues"
+	},
+	"homepage": "https://github.com/trunkcode/check-http-status",
+	"dependencies": {
+		"axios": "^0.23.0",
+		"columnify": "^1.5.4",
+		"exceljs": "^4.3.0",
+		"xml2js": "^0.4.23"
+	},
+	"devDependencies": {
+		"eslint": "^8.0.1"
+	}
 }
