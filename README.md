@@ -183,6 +183,7 @@ checkHttpStatus({
 | `signal` | AbortSignal | | Stop the crawl. Everything checked so far is returned; unfinished URLs are "Not checked". |
 | `onResult` | Function | | Called with each result as soon as its URL is checked (live results). |
 | `onProgress` | Function | | Called with progress stats after each URL. |
+| `onPageLimit` | Function | | Called when everything up to `maxPages` is checked but more pages are waiting, instead of stopping. Return (or resolve) `true` to crawl up to `maxPages` more, a number to crawl that many more (`Infinity` for all), or `false` to finish. Receives the progress stats plus `waitingPages`. |
 
 Provide at least one of `crawl`, `urls` or `sitemaps`. For a full site audit, `crawl` on its own is enough.
 

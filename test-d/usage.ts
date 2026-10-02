@@ -26,7 +26,8 @@ async function main(): Promise<void> {
     onProgress: (progress) => {
       const state: 'idle' | 'running' | 'done' | 'stopped' = progress.state;
       void state;
-    }
+    },
+    onPageLimit: async (progress) => progress.waitingPages > 100 ? 1000 : true
   });
 
   const notFound = report.results.filter((result) => result.category === 'Not Found');

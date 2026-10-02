@@ -139,6 +139,12 @@ declare namespace checkHttpStatus {
     onResult?: (result: Result) => void;
     /** Called with progress after each URL. */
     onProgress?: (progress: Progress) => void;
+    /**
+     * Called once everything up to `maxPages` is checked and more pages are waiting.
+     * Resolve `true` to crawl up to `maxPages` more, a number to crawl that many more
+     * (`Infinity` for all), or `false` to finish. Asked again each time the new limit is reached.
+     */
+    onPageLimit?: (progress: PageLimitProgress) => boolean | number | Promise<boolean | number>;
   }
 
   interface FoundOn {
@@ -201,6 +207,11 @@ declare namespace checkHttpStatus {
     finishedAt: number | null;
     elapsed: number;
     pageLimitReached: boolean;
+  }
+
+  interface PageLimitProgress extends Progress {
+    /** Pages found after `maxPages` was reached. */
+    waitingPages: number;
   }
 
   interface Summary extends Progress {

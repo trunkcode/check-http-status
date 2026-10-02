@@ -69,6 +69,7 @@ function normalizeConfig(config) {
     'maxDepth': config.maxDepth === undefined || config.maxDepth === null || config.maxDepth === '' ? null : toInt(config.maxDepth, null, 0, 10000),
     'maxPages': toInt(config.maxPages, 1000, 1, 1000000),
     'maxRedirects': toInt(config.maxRedirects, 10, 0, 50),
+    'onPageLimit': typeof config.onPageLimit === 'function' ? config.onPageLimit : null,
     'onProgress': typeof config.onProgress === 'function' ? config.onProgress : null,
     'onResult': typeof config.onResult === 'function' ? config.onResult : null,
     // CLI: print the URL list even when reports are saved.

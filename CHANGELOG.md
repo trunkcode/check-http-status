@@ -1,5 +1,11 @@
 # check-http-status changelog
 
+## Unreleased
+
+### New
+
+- `onPageLimit` option: when `maxPages` is reached, ask whether to keep crawling instead of stopping (for apps built on the library)
+
 ## 2.0.1 - Oct 2, 2026
 
 ### Fixed
