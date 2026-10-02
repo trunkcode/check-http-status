@@ -157,8 +157,6 @@ checkHttpStatus({
 | `crawl` | String / Array | | Website URL to crawl. Pages are discovered by following internal links. |
 | `urls` | Array | | URLs to check (with their redirects), without crawling. |
 | `sitemaps` | Array | | *Optional.* Sitemap / sitemap index URLs. With `crawl`, their pages are crawled too and orphans are flagged; without it, their URLs are checked. |
-
-Provide at least one of `crawl`, `urls` or `sitemaps`. For a full site audit, `crawl` on its own is enough.
 | `include` | Array / String | | Only crawl URLs matching one of these rules. |
 | `exclude` | Array / String | | Don't crawl URLs matching these rules. They are still listed and checked. |
 | `maxPages` | Number | `1000` | Maximum pages to crawl. Later pages are listed as "Skipped (max pages)". |
@@ -185,6 +183,8 @@ Provide at least one of `crawl`, `urls` or `sitemaps`. For a full site audit, `c
 | `signal` | AbortSignal | | Stop the crawl. Everything checked so far is returned; unfinished URLs are "Not checked". |
 | `onResult` | Function | | Called with each result as soon as its URL is checked (live results). |
 | `onProgress` | Function | | Called with progress stats after each URL. |
+
+Provide at least one of `crawl`, `urls` or `sitemaps`. For a full site audit, `crawl` on its own is enough.
 
 Rules match as a case-insensitive substring (`/docs`), a wildcard
 (`*/products/*`) or a regular expression (`/\/page\/\d+/`).
