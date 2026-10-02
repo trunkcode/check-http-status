@@ -139,11 +139,7 @@ declare namespace checkHttpStatus {
     onResult?: (result: Result) => void;
     /** Called with progress after each URL. */
     onProgress?: (progress: Progress) => void;
-    /**
-     * Called once everything up to `maxPages` is checked and more pages are waiting.
-     * Resolve `true` to crawl up to `maxPages` more, a number to crawl that many more
-     * (`Infinity` for all), or `false` to finish. Asked again each time the new limit is reached.
-     */
+    /** At `maxPages`: `true` crawls `maxPages` more, a number that many (`Infinity` all), `false` stops. */
     onPageLimit?: (progress: PageLimitProgress) => boolean | number | Promise<boolean | number>;
   }
 

@@ -1,6 +1,6 @@
 # check-http-status changelog
 
-## Unreleased
+## 2.1.0 - Oct 2, 2026
 
 ### New
 
