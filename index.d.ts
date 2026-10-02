@@ -96,7 +96,7 @@ declare namespace checkHttpStatus {
     include?: string | string[];
     /** Don't crawl matching URLs; they're still listed and checked. */
     exclude?: string | string[];
-    /** Default 1000. */
+    /** Default 5000. */
     maxPages?: number;
     /** Maximum link depth from the start URL. Default unlimited. */
     maxDepth?: number | null;
@@ -139,6 +139,8 @@ declare namespace checkHttpStatus {
     onResult?: (result: Result) => void;
     /** Called with progress after each URL. */
     onProgress?: (progress: Progress) => void;
+    /** At `maxPages`: `true` crawls `maxPages` more, a number that many (`Infinity` all), `false` stops. */
+    onPageLimit?: (progress: PageLimitProgress) => boolean | number | Promise<boolean | number>;
   }
 
   interface FoundOn {
@@ -201,6 +203,11 @@ declare namespace checkHttpStatus {
     finishedAt: number | null;
     elapsed: number;
     pageLimitReached: boolean;
+  }
+
+  interface PageLimitProgress extends Progress {
+    /** Pages found after `maxPages` was reached. */
+    waitingPages: number;
   }
 
   interface Summary extends Progress {

@@ -1,7 +1,7 @@
 {
 	"name": "check-http-status",
 	"description": "Crawl a website or check a list of URLs: HTTP status codes, redirect chains, broken links and the pages they were found on. Export to Excel, CSV, JSON or an HTML report.",
-	"version": "2.0.1",
+	"version": "2.1.0",
 	"main": "index.js",
 	"types": "index.d.ts",
 	"bin": {

@@ -139,6 +139,53 @@ describe('crawl limits and rules', () => {
     assert.strictEqual(report.summary.pageLimitReached, true);
   });
 
+  test('onPageLimit can keep crawling past maxPages, in chunks or all at once', async () => {
+    const asked = [];
+    const full = await checkHttpStatus({ 'crawl': site.origin, 'silent': true });
+    const fullPages = full.results.filter((result) => result.scope === 'crawl').length;
+
+    const chunked = await checkHttpStatus({
+      'crawl': site.origin,
+      'maxPages': 3,
+      'onPageLimit': (progress) => {
+        asked.push(progress);
+        return asked.length === 1;
+      },
+      'silent': true
+    });
+    assert.strictEqual(asked.length, 2);
+    assert.strictEqual(asked[0].pagesCrawled, 3);
+    assert.ok(asked[0].waitingPages > 0);
+    assert.strictEqual(chunked.results.filter((result) => result.scope === 'crawl').length, 6);
+    assert.ok(chunked.results.some((result) => result.scope === 'limit'));
+    assert.strictEqual(chunked.summary.state, 'done');
+
+    const all = await checkHttpStatus({ 'crawl': site.origin, 'maxPages': 3, 'onPageLimit': async () => Infinity, 'silent': true });
+    assert.strictEqual(all.results.filter((result) => result.scope === 'crawl').length, fullPages);
+    assert.ok(!all.results.some((result) => result.scope === 'limit'));
+  });
+
+  test('onPageLimit answering false, or aborting while asked, keeps the v2 result', async () => {
+    const declined = await checkHttpStatus({ 'crawl': site.origin, 'maxPages': 3, 'onPageLimit': () => false, 'silent': true });
+    assert.strictEqual(declined.results.filter((result) => result.scope === 'crawl').length, 3);
+    assert.strictEqual(declined.summary.pageLimitReached, true);
+
+    const controller = new AbortController();
+    const aborted = await checkHttpStatus({
+      'crawl': site.origin,
+      'maxPages': 3,
+      // Never answers: the abort has to end the crawl.
+      'onPageLimit': () => {
+        setTimeout(() => controller.abort(), 20);
+        return new Promise(() => {});
+      },
+      'signal': controller.signal,
+      'silent': true
+    });
+    assert.strictEqual(aborted.summary.state, 'stopped');
+    assert.strictEqual(aborted.results.filter((result) => result.scope === 'crawl').length, 3);
+  });
+
   test('checkExternal: false skips external links but still checks excluded pages and assets', async () => {
     const report = await checkHttpStatus({ 'checkAssets': true, 'checkExternal': false, 'crawl': site.origin, 'exclude': ['/docs'], 'silent': true });
     assert.strictEqual(find(report, '/partners', site.externalOrigin).category, 'Not checked');

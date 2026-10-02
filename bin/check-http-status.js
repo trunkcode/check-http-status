@@ -25,7 +25,7 @@ Crawl options
   -e, --exclude <text>     Don't crawl URLs containing <text>; they are still listed
                            and their status is checked (repeatable)
                            Rules may use * wildcards or /regex/
-      --max-pages <n>      Max pages to crawl (default 1000)
+      --max-pages <n>      Max pages to crawl (default 5000)
       --max-depth <n>      Max link depth from the start URL (default unlimited)
       --no-external        Don't check the status of external links (excluded
                            pages and assets are still checked)

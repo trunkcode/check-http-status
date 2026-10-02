@@ -159,7 +159,7 @@ checkHttpStatus({
 | `sitemaps` | Array | | *Optional.* Sitemap / sitemap index URLs. With `crawl`, their pages are crawled too and orphans are flagged; without it, their URLs are checked. |
 | `include` | Array / String | | Only crawl URLs matching one of these rules. |
 | `exclude` | Array / String | | Don't crawl URLs matching these rules. They are still listed and checked. |
-| `maxPages` | Number | `1000` | Maximum pages to crawl. Later pages are listed as "Skipped (max pages)". |
+| `maxPages` | Number | `5000` | Maximum pages to crawl. Later pages are listed as "Skipped (max pages)". |
 | `maxDepth` | Number | unlimited | Maximum link depth from the start URL. |
 | `checkExternal` | Boolean | `true` | Check the status of external links. Excluded pages and assets are always checked. |
 | `checkAssets` | Boolean | `false` | Also check images, scripts, stylesheets, icons and iframes. |
@@ -183,6 +183,7 @@ checkHttpStatus({
 | `signal` | AbortSignal | | Stop the crawl. Everything checked so far is returned; unfinished URLs are "Not checked". |
 | `onResult` | Function | | Called with each result as soon as its URL is checked (live results). |
 | `onProgress` | Function | | Called with progress stats after each URL. |
+| `onPageLimit` | Function | | Called when everything up to `maxPages` is checked but more pages are waiting, instead of stopping. Return (or resolve) `true` to crawl up to `maxPages` more, a number to crawl that many more (`Infinity` for all), or `false` to finish. Receives the progress stats plus `waitingPages`. |
 
 Provide at least one of `crawl`, `urls` or `sitemaps`. For a full site audit, `crawl` on its own is enough.
 
