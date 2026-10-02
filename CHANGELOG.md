@@ -1,5 +1,11 @@
 # check-http-status changelog
 
+## 2.0.1 - Oct 2, 2026
+
+### Fixed
+
+- README parameters table rendering
+
 ## 2.0.0 - Oct 2, 2026
 
 ### New
