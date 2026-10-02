@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/check-http-status/schema.json",
+  "crawl": "https://www.example.com",
+  "exclude": ["/docs", "/wp-admin"],
+  "maxPages": 2000,
+  "checkAssets": true,
+  "respectRobots": true,
+  "delay": 250,
+  "userAgent": "ExampleAudit/1.0 (+https://www.example.com/bot)",
+  "export": [
+    { "format": "xlsx", "file": "reports/link-report.xlsx" },
+    { "format": "html", "file": "reports/link-report.html" }
+  ],
+  "googleDrive": { "public": false },
+  "fail": true
+}

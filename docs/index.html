@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>check-http-status · Crawl a site, find broken links and redirects</title>
+<meta name="description" content="Free, open-source command-line tool and Node.js library. Crawl a website or check a list of URLs, find 404s, redirect chains and broken links, see which pages link to them, and export to Excel, CSV, JSON or HTML.">
+<style>
+  :root {
+    --bg: #f7f8fa; --surface: #fff; --text: #17202b; --muted: #5d6b7c; --border: #e1e6ec;
+    --accent: #2563eb; --accent-soft: #e8efff; --code-bg: #0f1720; --code-text: #d8e1ea;
+    --ok: #4ade80; --warn: #facc15; --bad: #f87171; --dim: #7c8a9b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --surface: #151b23; --text: #e6edf3; --muted: #8d9aaa; --border: #262f3a;
+      --accent: #6aa3ff; --accent-soft: #15233d; --code-bg: #0a0e14;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  a { color: var(--accent); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+  header.top { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; gap: 12px; }
+  .brand { font-weight: 700; font-size: 17px; color: var(--text); text-decoration: none; display: flex; gap: 8px; align-items: center; }
+  .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); box-shadow: 14px 0 0 var(--warn), 28px 0 0 var(--bad); margin-right: 30px; }
+  nav a { color: var(--muted); text-decoration: none; margin-left: 18px; font-size: 15px; }
+  nav a:hover { color: var(--text); }
+  .hero { padding: 48px 0 32px; display: grid; grid-template-columns: 1.05fr 1fr; gap: 40px; align-items: center; }
+  .hero h1 { font-size: clamp(32px, 5vw, 48px); line-height: 1.1; margin: 0 0 16px; letter-spacing: -.02em; }
+  .hero p.lead { font-size: 18px; color: var(--muted); margin: 0 0 24px; }
+  .install { display: flex; align-items: center; gap: 8px; background: var(--code-bg); color: var(--code-text); border-radius: 10px; padding: 12px 14px; font: 15px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-x: auto; }
+  .install span { color: var(--dim); user-select: none; }
+  .install code { white-space: nowrap; flex: 1; }
+  .copy { background: transparent; color: var(--code-text); border: 1px solid #2c3845; border-radius: 6px; padding: 4px 10px; font: 13px system-ui, sans-serif; cursor: pointer; }
+  .cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid var(--border); color: var(--text); background: var(--surface); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .terminal { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 0 0 14px; font: 12.5px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow: hidden; box-shadow: 0 20px 50px -20px rgba(0,0,0,.35); }
+  .terminal .bar { display: flex; gap: 6px; padding: 12px 14px; }
+  .terminal .bar i { width: 11px; height: 11px; border-radius: 50%; background: #2c3845; }
+  .terminal pre { margin: 0; padding: 0 16px; overflow-x: auto; white-space: pre; }
+  .t-ok { color: var(--ok); } .t-warn { color: var(--warn); } .t-bad { color: var(--bad); } .t-dim { color: var(--dim); } .t-cmd { color: #fff; }
+  section { padding: 40px 0; }
+  h2 { font-size: 28px; margin: 0 0 8px; letter-spacing: -.01em; }
+  .section-lead { color: var(--muted); margin: 0 0 28px; max-width: 680px; }
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .feature { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .feature h3 { margin: 0 0 6px; font-size: 16px; }
+  .feature p { margin: 0; color: var(--muted); font-size: 15px; }
+  .feature .icon { width: 34px; height: 34px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; margin-bottom: 12px; font-size: 18px; }
+  .demo-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center; }
+  .demo-card p { margin: 6px 0 0; color: var(--muted); }
+  .tabs { display: flex; gap: 6px; margin-bottom: -1px; flex-wrap: wrap; }
+  .tab { border: 1px solid var(--border); border-bottom: 0; background: transparent; color: var(--muted); padding: 8px 14px; border-radius: 8px 8px 0 0; cursor: pointer; font: inherit; font-size: 14px; }
+  .tab[aria-selected="true"] { background: var(--code-bg); color: var(--code-text); border-color: var(--code-bg); }
+  .panel { background: var(--code-bg); color: var(--code-text); border-radius: 0 10px 10px 10px; padding: 18px; font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-x: auto; }
+  .panel pre { margin: 0; white-space: pre; }
+  .panel[hidden] { display: none; }
+  table.opts { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; font-size: 14.5px; }
+  table.opts th, table.opts td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.opts th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--bg); }
+  table.opts code { font-size: 13px; white-space: nowrap; }
+  .tablewrap { overflow-x: auto; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  td code, p code, li code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; font-size: .9em; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .callout { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; color: var(--muted); }
+  footer { border-top: 1px solid var(--border); padding: 28px 0 40px; color: var(--muted); font-size: 14px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  @media (max-width: 860px) {
+    .hero, .two, .demo-card { grid-template-columns: 1fr; }
+    .features { grid-template-columns: 1fr 1fr; }
+    nav a:not(.gh) { display: none; }
+  }
+  @media (max-width: 560px) { .features { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#"><span class="dot"></span>check-http-status</a>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#demo">Demo</a>
+      <a href="#usage">Usage</a>
+      <a href="#options">Options</a>
+      <a class="gh" href="https://github.com/trunkcode/check-http-status">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <div>
+      <h1>Find every broken link and redirect on your website.</h1>
+      <p class="lead">Crawl a site or check a list of URLs. See status codes, full redirect chains, and the exact pages each broken link was found on. Export to Excel, CSV, JSON or an interactive HTML report.</p>
+      <div class="install"><span>$</span><code id="installCmd">npx check-http-status https://your-site.com -o report.xlsx</code><button class="copy" type="button" data-copy="installCmd">Copy</button></div>
+      <div class="cta">
+        <a class="btn primary" href="demo.html">View demo report →</a>
+        <a class="btn" href="https://github.com/trunkcode/check-http-status">Star on GitHub</a>
+      </div>
+    </div>
+    <div class="terminal" aria-label="Example terminal output">
+      <div class="bar"><i></i><i></i><i></i></div>
+<pre><span class="t-cmd">$ npx check-http-status acme-outdoor.example -e /docs</span>
+
+<span class="t-warn">301</span> /summer-sale <span class="t-dim">→ /new-arrivals</span>
+<span class="t-dim">      found on / ("Summer sale")</span>
+<span class="t-warn">301</span> /products/sleeping-bags <span class="t-dim">⇒ /collections/</span>
+<span class="t-dim">      sleeping-bags (404, 2 hops)</span>
+<span class="t-dim">      found on /products/ ("Sleeping bags")</span>
+<span class="t-bad">404</span> partner-site.example/deleted-article
+<span class="t-dim">      found on /blog/best-hiking-trails</span>
+<span class="t-bad">410</span> /blog/2019/old-news
+<span class="t-dim">      found on /blog/ ("Old news")</span>
+<span class="t-bad">500</span> /products/stoves
+<span class="t-dim">      found on /products/ ("Stoves")</span>
+<span class="t-dim">      found on /blog/packing-list ("Stoves")</span>
+
+36 URLs (17 pages crawled, 2s): <span class="t-ok">22 OK</span>,
+<span class="t-warn">7 redirects</span>, <span class="t-bad">4 not found</span>, <span class="t-bad">2 5xx</span>, <span class="t-bad">1 error</span>
+<span class="t-warn">3 orphan page(s): in the sitemap but not linked.</span></pre>
+    </div>
+  </div>
+
+  <section id="features">
+    <h2>Everything you need for a link audit</h2>
+    <p class="section-lead">It runs on your machine (macOS, Windows or Linux), so it can also check staging sites, password-protected sites and sites behind a VPN.</p>
+    <div class="features">
+      <div class="feature"><div class="icon">⟳</div><h3>Full-site crawl</h3><p>Follows every internal link from a start page, breadth-first, with page and depth limits.</p></div>
+      <div class="feature"><div class="icon">⌖</div><h3>Where it was found</h3><p>Every broken link and redirect lists the pages that link to it, plus the link text.</p></div>
+      <div class="feature"><div class="icon">↪</div><h3>Redirect chains</h3><p>Each hop is reported, with the final URL and status. Redirect loops are detected.</p></div>
+      <div class="feature"><div class="icon">⇥</div><h3>External links</h3><p>External links are checked but never crawled, so they're listed without leaving your site.</p></div>
+      <div class="feature"><div class="icon">⊘</div><h3>Include / exclude rules</h3><p>Skip sections like <code>/docs</code>. Excluded URLs are still listed and checked, just not crawled. Supports wildcards and regex.</p></div>
+      <div class="feature"><div class="icon">≡</div><h3>Sitemaps &amp; orphans</h3><p>Reads sitemap indexes and <code>.xml.gz</code> files, and flags pages in the sitemap that nothing links to.</p></div>
+      <div class="feature"><div class="icon">▦</div><h3>Excel, CSV, JSON, HTML</h3><p>Every URL found, listed once with all the pages it was found on in one cell. Excel sheets: Summary, All URLs, Issues and External Links.</p></div>
+      <div class="feature"><div class="icon">🔒</div><h3>Staging &amp; auth</h3><p>HTTP Basic auth (sent only to your site, never to external links) and custom headers.</p></div>
+      <div class="feature"><div class="icon">☁</div><h3>Google Drive &amp; OneDrive</h3><p>Add <code>--drive</code> or <code>--onedrive</code> to upload the report. Add <code>--public</code> to get a link anyone can open.</p></div>
+      <div class="feature"><div class="icon">{}</div><h3>Config file &amp; TypeScript</h3><p>Save settings in <code>check-http-status.config.json</code> (with a JSON Schema for autocomplete). Type definitions included.</p></div>
+      <div class="feature"><div class="icon">✓</div><h3>CI friendly</h3><p><code>--fail</code> exits with code 1 when broken links are found, so you can block a deploy.</p></div>
+    </div>
+  </section>
+
+  <section id="demo">
+    <div class="demo-card">
+      <div>
+        <h2>See a real report</h2>
+        <p>A crawl of a sample store with 40 URLs, including 404s, a 410, 5xx errors, a two-hop redirect chain, a redirect loop, a DNS failure, a broken image and orphan pages. Filter it, search it, and click any row to see where the link was found.</p>
+      </div>
+      <div class="cta" style="margin:0">
+        <a class="btn primary" href="demo.html">Open demo report</a>
+        <a class="btn" href="sample-report.xlsx" download>Sample .xlsx</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="usage">
+    <h2>Usage</h2>
+    <p class="section-lead">Requires Node.js 18.17 or newer. Run it with <code>npx</code>, install it globally, or use it as a library.</p>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" data-tab="cli">Command line</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="node">Node.js</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="ci">GitHub Actions</button>
+    </div>
+    <div class="panel" id="panel-cli"><pre><span class="t-dim"># Crawl a site, skip /docs (still listed), save an Excel report</span>
+npx check-http-status https://www.example.com --exclude /docs -o report.xlsx
+
+<span class="t-dim"># Optional: add a sitemap to also find orphan pages; HTML report</span>
+npx check-http-status crawl example.com -s https://example.com/sitemap_index.xml -o report.html
+
+<span class="t-dim"># Only check specific URLs, or every URL in a sitemap</span>
+npx check-http-status check https://example.com/old-page https://example.com/pricing
+npx check-http-status check -s https://example.com/sitemap.xml --issues-only
+
+<span class="t-dim"># Password-protected staging site</span>
+CHS_AUTH=user:pass npx check-http-status https://staging.example.com
+
+<span class="t-dim"># Install globally</span>
+npm install -g check-http-status
+check-http-status --help</pre></div>
+    <div class="panel" id="panel-node" hidden><pre>const checkHttpStatus = require('check-http-status');
+
+<span class="t-dim">// Just the website URL: pages are found by crawling, no sitemap needed</span>
+const report = await checkHttpStatus({
+  crawl: 'https://www.example.com',
+  exclude: ['/docs'],
+  maxPages: 2000,
+  export: [
+    { format: 'xlsx', location: './reports/' },
+    { format: 'html', file: './reports/report.html' }
+  ],
+  options: {
+    auth: { username: 'user', password: 'pass' },
+    headers: { 'Accept-Language': 'en' },
+    timeout: 15000
+  }
+});
+
+<span class="t-dim">// report.summary.counts → { OK: 412, Redirect: 9, 'Not Found': 3, ... }</span>
+for (const r of report.results.filter((r) => r.category === 'Not Found')) {
+  console.log(r.url, 'found on', r.foundOn.map((s) => s.page));
+}</pre></div>
+    <div class="panel" id="panel-ci" hidden><pre><span class="t-dim"># .github/workflows/links.yml</span>
+name: Check links
+on:
+  schedule: [{ cron: '0 6 * * 1' }]
+  workflow_dispatch:
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npx check-http-status https://www.example.com --fail -o report.html
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: link-report, path: report.html }</pre></div>
+  </section>
+
+  <section id="options">
+    <h2>Options</h2>
+    <p class="section-lead">The CLI flags and Node.js options are equivalent. Run <code>check-http-status --help</code> for the full list.</p>
+    <div class="tablewrap">
+      <table class="opts">
+        <thead><tr><th>CLI</th><th>Node.js</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>crawl &lt;url&gt;</code></td><td><code>crawl</code></td><td></td><td>Website URL. Pages are found by following internal links.</td></tr>
+          <tr><td><code>check &lt;url…&gt;</code></td><td><code>urls</code></td><td></td><td>Check only these URLs (and their redirects).</td></tr>
+          <tr><td><code>-s, --sitemap</code></td><td><code>sitemaps</code></td><td></td><td><em>Optional.</em> Sitemap or sitemap index URL(s). Not needed for crawling. Gzip supported.</td></tr>
+          <tr><td><code>-i, --include</code></td><td><code>include</code></td><td></td><td>Only crawl URLs matching one of these rules.</td></tr>
+          <tr><td><code>-e, --exclude</code></td><td><code>exclude</code></td><td></td><td>Don't crawl matching URLs. They're still listed and checked.</td></tr>
+          <tr><td><code>--max-pages</code></td><td><code>maxPages</code></td><td>1000</td><td>Maximum pages to crawl.</td></tr>
+          <tr><td><code>--max-depth</code></td><td><code>maxDepth</code></td><td>∞</td><td>Maximum link depth from the start URL.</td></tr>
+          <tr><td><code>--no-external</code></td><td><code>checkExternal: false</code></td><td>checked</td><td>Don't check external links. Excluded pages and assets are still checked.</td></tr>
+          <tr><td><code>--assets</code></td><td><code>checkAssets</code></td><td>off</td><td>Also check images, scripts, CSS and iframes.</td></tr>
+          <tr><td><code>--subdomains</code></td><td><code>subdomains</code></td><td>off</td><td>Treat subdomains as internal.</td></tr>
+          <tr><td><code>--respect-robots</code></td><td><code>respectRobots</code></td><td>off</td><td>Don't request URLs your robots.txt disallows (they're listed as blocked); honour Crawl-delay.</td></tr>
+          <tr><td><code>--config</code></td><td><code>loadConfig()</code></td><td></td><td>Load settings from a JSON file. <code>check-http-status.config.json</code> in the current folder is used automatically.</td></tr>
+          <tr><td><code>--ignore-query</code></td><td><code>ignoreQuery</code></td><td>off</td><td>Treat <code>/a?x=1</code> and <code>/a</code> as the same URL.</td></tr>
+          <tr><td><code>-c, --concurrency</code></td><td><code>concurrency</code></td><td>10</td><td>Parallel requests.</td></tr>
+          <tr><td><code>-t, --timeout</code></td><td><code>options.timeout</code></td><td>15 s</td><td>Per-request timeout (seconds on the CLI, milliseconds in Node.js).</td></tr>
+          <tr><td><code>--delay</code></td><td><code>delay</code></td><td>0</td><td>Wait between requests to the same site (seconds on the CLI, milliseconds in Node.js).</td></tr>
+          <tr><td><code>--retries</code></td><td><code>retries</code></td><td>2</td><td>Retry 429/502/503/504 and dropped connections, honouring <code>Retry-After</code>.</td></tr>
+          <tr><td><code>--user-agent</code></td><td><code>userAgent</code></td><td></td><td>Custom User-Agent header.</td></tr>
+          <tr><td><code>-a, --auth</code></td><td><code>options.auth</code></td><td></td><td>HTTP Basic auth, sent only to the site being checked.</td></tr>
+          <tr><td><code>-H, --header</code></td><td><code>options.headers</code></td><td></td><td>Extra request headers.</td></tr>
+          <tr><td><code>-o, --output</code></td><td><code>export</code></td><td></td><td><code>.xlsx</code>, <code>.csv</code>, <code>.json</code> or <code>.html</code> report.</td></tr>
+          <tr><td><code>--issues-only</code> / <code>--all</code></td><td><code>skip200</code></td><td></td><td>Hide or show 200 OK URLs in the terminal. <code>--issues-only</code> also drops them from saved reports, which otherwise list every URL.</td></tr>
+          <tr><td><code>--drive</code></td><td><code>googleDrive</code></td><td></td><td>Upload the report(s) to Google Drive. Excel/CSV become Google Sheets. Run <code>check-http-status drive-login</code> once first.</td></tr>
+          <tr><td><code>--onedrive</code></td><td><code>oneDrive</code></td><td></td><td>Upload the report(s) to OneDrive. Run <code>check-http-status onedrive-login</code> once first.</td></tr>
+          <tr><td><code>--public</code></td><td><code>public: true</code></td><td></td><td>Anyone with the link can view the uploaded files.</td></tr>
+          <tr><td><code>--fail</code></td><td></td><td></td><td>Exit with code 1 if any 4xx, 5xx or connection errors are found.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="two">
+      <div>
+        <h2>Why run it locally?</h2>
+        <p class="section-lead" style="margin-bottom:0">Online checkers can't reach staging servers, intranet sites or VPN-only sites, and many sites block their datacenter IPs. Running on your own machine gets past all of that, and you can crawl as many pages as you need.</p>
+      </div>
+      <div>
+        <h2>Upgrading from v1</h2>
+        <p class="callout">v1 configs (<code>urls</code>, <code>sitemaps</code>, <code>skip200</code>, <code>export</code>, <code>options</code>) still work. v2 adds crawling and a CLI, and now returns the results. It also throws errors instead of exiting the process, and requires Node.js 18.17+.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>MIT licensed · by <a href="https://www.trunkcode.com/">TrunkCode</a></span>
+    <span><a href="https://github.com/trunkcode/check-http-status">GitHub</a> · <a href="https://www.npmjs.com/package/check-http-status">npm</a> · <a href="https://github.com/trunkcode/check-http-status/issues">Report an issue</a></span>
+  </footer>
+</div>
+<script>
+  document.querySelectorAll('[data-copy]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = document.getElementById(btn.getAttribute('data-copy')).textContent;
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      });
+    });
+  });
+  document.querySelectorAll('.tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('.tab').forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', on);
+        document.getElementById('panel-' + t.getAttribute('data-tab')).hidden = !on;
+      });
+    });
+  });
+</script>
+</body>
+</html>

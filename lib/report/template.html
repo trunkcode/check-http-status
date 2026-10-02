@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  :root {
+    --bg: #f5f7fa; --card: #fff; --text: #1d2733; --muted: #607085; --border: #dde3ea;
+    --accent: #2563eb; --ok: #15803d; --ok-bg: #e6f4ea; --warn: #a16207; --warn-bg: #fff4d6;
+    --bad: #b91c1c; --bad-bg: #fde2e1; --gray-bg: #eef1f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f141a; --card: #171e26; --text: #e4e9ef; --muted: #8b9aab; --border: #2a3440;
+      --accent: #60a5fa; --ok: #4ade80; --ok-bg: #12301d; --warn: #facc15; --warn-bg: #3a300c;
+      --bad: #f87171; --bad-bg: #3b1515; --gray-bg: #222b35;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 64px; }
+  a { color: var(--accent); }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .meta { color: var(--muted); margin: 0 0 18px; word-break: break-all; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  .stat { background: var(--bg); border-radius: 8px; padding: 10px 12px; border: 0; text-align: left; color: inherit; font: inherit; cursor: pointer; }
+  .stat:hover { outline: 1px solid var(--border); }
+  .stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: 12px; }
+  .stat.ok b { color: var(--ok); } .stat.warn b { color: var(--warn); } .stat.bad b { color: var(--bad); }
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  input[type=search] { font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 8px 11px; width: 100%; max-width: 360px; }
+  button { font: inherit; border: 1px solid var(--border); background: var(--card); color: var(--text); padding: 7px 13px; border-radius: 7px; cursor: pointer; }
+  button:disabled { opacity: .45; cursor: default; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .chip { border-radius: 999px; padding: 4px 11px; font-size: 13px; }
+  .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chip small { opacity: .75; margin-left: 4px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; min-width: 720px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--bg); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); cursor: pointer; user-select: none; white-space: nowrap; }
+  tr.row:hover { background: var(--bg); cursor: pointer; }
+  td.url { word-break: break-all; }
+  td.url a { color: inherit; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .c-OK { background: var(--ok-bg); color: var(--ok); }
+  .c-Redirect { background: var(--warn-bg); color: var(--warn); }
+  .c-NotFound, .c-ClientError, .c-ServerError, .c-Error { background: var(--bad-bg); color: var(--bad); }
+  .c-Notchecked, .c-Other { background: var(--gray-bg); color: var(--muted); }
+  .c-Blocked { background: var(--gray-bg); color: var(--text); }
+  .tag { display: inline-block; font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; margin: 2px 4px 0 0; white-space: nowrap; }
+  .sub { color: var(--muted); font-size: 12px; margin-top: 3px; word-break: break-all; }
+  tr.detail > td { background: var(--bg); }
+  .detail h4 { margin: 4px 0 6px; font-size: 13px; }
+  .detail ul { margin: 0 0 8px; padding-left: 18px; }
+  .detail li { margin: 3px 0; word-break: break-all; }
+  .anchor { color: var(--muted); }
+  .pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 10px; color: var(--muted); }
+  .empty { text-align: center; color: var(--muted); padding: 30px; }
+  footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 24px; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title">HTTP status report</h1>
+  <p class="meta" id="meta"></p>
+
+  <section class="card"><div class="stats" id="stats"></div></section>
+
+  <section class="card">
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Filter by URL, link text or page…" aria-label="Filter results">
+      <div>
+        <button type="button" id="csvBtn">Download CSV (current view)</button>
+        <button type="button" id="jsonBtn">Download JSON</button>
+      </div>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th data-sort="status" style="width:150px">Status</th>
+          <th data-sort="url">URL</th>
+          <th data-sort="type" style="width:170px">Type</th>
+          <th data-sort="foundOn" style="width:110px">Found on</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="pager"></div>
+  </section>
+
+  <footer>Generated by <a href="https://github.com/trunkcode/check-http-status">check-http-status</a></footer>
+</main>
+
+<script id="report-data" type="application/json">__REPORT_DATA__</script>
+<script>
+(function () {
+  'use strict';
+
+  var report = JSON.parse(document.getElementById('report-data').textContent);
+  var results = report.results;
+  var summary = report.summary;
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  };
+  var ISSUES = ['Redirect', 'Not Found', 'Client Error', 'Server Error', 'Error'];
+  var SCOPES = { crawl: 'crawled', list: 'checked', excluded: 'excluded', external: 'not crawled', asset: 'asset', limit: 'max pages', depth: 'max depth', robots: 'robots.txt' };
+  var FILTERS = [
+    ['all', 'All', function () { return true; }],
+    ['issues', 'All issues', function (r) { return ISSUES.indexOf(r.category) !== -1; }],
+    ['Redirect', 'Redirects', function (r) { return r.category === 'Redirect'; }],
+    ['Not Found', '404 / 410', function (r) { return r.category === 'Not Found'; }],
+    ['Client Error', 'Other 4xx', function (r) { return r.category === 'Client Error'; }],
+    ['Server Error', '5xx', function (r) { return r.category === 'Server Error'; }],
+    ['Error', 'Errors / timeouts', function (r) { return r.category === 'Error'; }],
+    ['Blocked', 'Blocked by bot protection', function (r) { return r.category === 'Blocked'; }],
+    ['OK', 'OK', function (r) { return r.category === 'OK'; }],
+    ['internal', 'Internal', function (r) { return r.type === 'internal'; }],
+    ['external', 'External', function (r) { return r.type === 'external'; }],
+    ['excluded', 'Excluded', function (r) { return r.scope === 'excluded'; }],
+    ['asset', 'Assets', function (r) { return r.linkType === 'asset'; }],
+    ['orphan', 'Orphan pages', function (r) { return r.orphan; }],
+    ['robots', 'Blocked by robots.txt', function (r) { return r.scope === 'robots'; }],
+    ['notchecked', 'Not checked', function (r) { return r.category === 'Not checked'; }]
+  ];
+  var PAGE_SIZE = 100;
+  var state = { filter: countOf('issues') ? 'issues' : 'all', query: '', page: 0, sort: null, dir: 1 };
+  var expanded = {};
+
+  function countOf(key) {
+    var fn = FILTERS.filter(function (f) { return f[0] === key; })[0][2];
+    return results.filter(fn).length;
+  }
+
+  // Header
+  $('title').textContent = summary.mode === 'crawl' ? 'Crawl report' : 'HTTP status report';
+  document.title = $('title').textContent + (summary.crawl[0] ? ' · ' + summary.crawl[0] : '');
+  var meta = [];
+  if (summary.crawl.length) meta.push(summary.crawl.join(', '));
+  if (summary.sitemaps.length) meta.push(summary.sitemaps.length + ' sitemap(s)');
+  meta.push(new Date(summary.finishedAt || summary.startedAt || Date.now()).toLocaleString());
+  meta.push(Math.round(summary.elapsed / 1000) + 's');
+  if (summary.pageLimitReached) meta.push('max pages reached');
+  $('meta').textContent = meta.join(' · ');
+
+  var c = summary.counts || {};
+  var tiles = [
+    ['', 'all', results.length, 'URLs found'],
+    ['', 'internal', summary.pagesCrawled, 'Pages crawled'],
+    ['ok', 'OK', c.OK || 0, 'OK'],
+    ['warn', 'Redirect', c.Redirect || 0, 'Redirects'],
+    ['bad', 'Not Found', c['Not Found'] || 0, '404 / 410'],
+    ['bad', 'issues', (c['Client Error'] || 0) + (c['Server Error'] || 0), 'Other 4xx / 5xx'],
+    ['bad', 'Error', c.Error || 0, 'Errors']
+  ];
+  if (summary.orphans) tiles.push(['warn', 'orphan', summary.orphans, 'Orphan pages']);
+  $('stats').innerHTML = tiles.map(function (t) {
+    return '<button type="button" class="stat ' + t[0] + '" data-filter="' + esc(t[1]) + '"><b>' + t[2].toLocaleString() + '</b><span>' + esc(t[3]) + '</span></button>';
+  }).join('');
+
+  function filtered() {
+    var fn = FILTERS.filter(function (f) { return f[0] === state.filter; })[0][2];
+    var q = state.query.toLowerCase();
+    var rows = results.filter(fn);
+    if (q) {
+      rows = rows.filter(function (r) {
+        if (r.url.toLowerCase().indexOf(q) !== -1 || (r.redirectTo || '').toLowerCase().indexOf(q) !== -1) return true;
+        return r.foundOn.some(function (s) {
+          return s.page.toLowerCase().indexOf(q) !== -1 || s.anchors.some(function (a) { return a.toLowerCase().indexOf(q) !== -1; });
+        });
+      });
+    }
+    if (state.sort) {
+      var val = {
+        status: function (r) { return r.status == null ? (r.error ? 999 : 1000) : r.status; },
+        url: function (r) { return r.url; },
+        type: function (r) { return r.type + r.scope; },
+        foundOn: function (r) { return r.foundOn.length; }
+      }[state.sort];
+      rows = rows.slice().sort(function (a, b) {
+        var x = val(a), y = val(b);
+        return (x > y ? 1 : x < y ? -1 : 0) * state.dir;
+      });
+    }
+    return rows;
+  }
+
+  function rowHtml(r) {
+    var cls = 'c-' + r.category.replace(/\s/g, '');
+    var label = r.error ? 'Error' : (r.status == null ? '—' : r.status);
+    var sub = '';
+    if (r.botProtection) sub += '<div class="sub">' + esc(r.note) + '</div>';
+    if (r.redirectTo) {
+      sub += '<div class="sub">→ ' + esc(r.redirectTo) + '</div>';
+      if (r.redirectCount > 1 || r.note) {
+        sub += '<div class="sub">⇒ ' + esc(r.finalUrl) + (r.finalStatus != null ? ' (' + r.finalStatus + ')' : '') + ' · ' + r.redirectCount + ' hops' + (r.note ? ' · ' + esc(r.note) : '') + '</div>';
+      }
+    }
+    if (r.error) sub += '<div class="sub">' + esc(r.error) + '</div>';
+
+    var tags = '<span class="tag">' + esc(r.type) + '</span><span class="tag">' + esc(SCOPES[r.scope] || r.scope) + '</span>';
+    if (r.linkType === 'asset') tags += '<span class="tag">asset</span>';
+    if (r.inSitemap) tags += '<span class="tag">sitemap</span>';
+    if (r.orphan) tags += '<span class="tag">orphan</span>';
+
+    var open = !!expanded[r.url];
+    var html = '<tr class="row" data-url="' + esc(r.url) + '">' +
+      '<td><span class="pill ' + cls + '" title="' + esc(r.error || (r.status + ' ' + r.statusText)) + '">' + esc(label) + '</span><div class="sub">' + esc(r.category === 'Not checked' ? 'not checked' : r.category) + '</div></td>' +
+      '<td class="url"><a href="' + esc(r.url) + '" target="_blank" rel="noopener noreferrer">' + esc(r.url) + '</a>' + sub + '</td>' +
+      '<td>' + tags + '</td>' +
+      '<td>' + (r.foundOn.length ? (open ? '▾ ' : '▸ ') + r.foundOn.length + ' page' + (r.foundOn.length > 1 ? 's' : '') : '<span class="tag">start</span>') + '</td></tr>';
+
+    if (open) {
+      var detail = '';
+      if (r.redirectChain.length) {
+        detail += '<h4>Redirect chain</h4><ul><li>' + esc(r.url) + ' (' + r.status + ')</li>' + r.redirectChain.map(function (h) {
+          return '<li>→ ' + esc(h.url) + ' (' + (h.status == null ? '?' : h.status) + ')</li>';
+        }).join('') + '</ul>';
+      }
+      if (r.foundOn.length) {
+        detail += '<h4>Found on</h4><ul>' + r.foundOn.map(function (s) {
+          var via = s.kind === 'redirect' ? ' <span class="tag">redirect</span>' : s.kind === 'sitemap' ? ' <span class="tag">sitemap</span>' : '';
+          var anchors = s.anchors.filter(function (a) { return a.charAt(0) !== '('; });
+          return '<li><a href="' + esc(s.page) + '" target="_blank" rel="noopener noreferrer">' + esc(s.page) + '</a>' + via +
+            (anchors.length ? ' <span class="anchor">— “' + esc(anchors.join('”, “')) + '”</span>' : '') +
+            (s.count > 1 ? ' <span class="tag">×' + s.count + '</span>' : '') + '</li>';
+        }).join('') + '</ul>';
+      }
+      if (r.title) detail += '<div class="sub">Title: ' + esc(r.title) + '</div>';
+      if (r.responseTime != null) detail += '<div class="sub">Response: ' + r.responseTime + ' ms' + (r.contentType ? ' · ' + esc(r.contentType) : '') + '</div>';
+      html += '<tr class="detail"><td></td><td colspan="3">' + detail + '</td></tr>';
+    }
+    return html;
+  }
+
+  function render() {
+    $('chips').innerHTML = FILTERS.map(function (f) {
+      var n = results.filter(f[2]).length;
+      if (!n && ['all', 'issues', state.filter].indexOf(f[0]) === -1) return '';
+      return '<button type="button" class="chip' + (f[0] === state.filter ? ' active' : '') + '" data-filter="' + esc(f[0]) + '">' + esc(f[1]) + '<small>' + n.toLocaleString() + '</small></button>';
+    }).join('');
+
+    var rows = filtered();
+    var pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    if (state.page >= pages) state.page = pages - 1;
+    var slice = rows.slice(state.page * PAGE_SIZE, (state.page + 1) * PAGE_SIZE);
+
+    $('tbody').innerHTML = slice.length ? slice.map(rowHtml).join('') : '<tr><td colspan="4" class="empty">No URLs match this filter.</td></tr>';
+    $('pager').innerHTML = rows.length > PAGE_SIZE
+      ? '<button type="button" data-page="-1"' + (state.page === 0 ? ' disabled' : '') + '>‹ Prev</button><span>Page ' + (state.page + 1) + ' of ' + pages + ' · ' + rows.length.toLocaleString() + ' URLs</span><button type="button" data-page="1"' + (state.page >= pages - 1 ? ' disabled' : '') + '>Next ›</button>'
+      : '<span>' + rows.length.toLocaleString() + ' URLs</span>';
+  }
+
+  function download(name, type, text) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: type }));
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+
+  function csvCell(v) {
+    var s = String(v == null ? '' : v);
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  $('csvBtn').addEventListener('click', function () {
+    var lines = [['URL', 'Found On', 'Redirect To', 'Status', 'Category', 'Type', 'Final URL', 'Final Status'].join(',')];
+    filtered().forEach(function (r) {
+      var foundOn = r.foundOn.map(function (s) { return s.page; }).join('\n');
+      lines.push([r.url, foundOn, r.redirectTo, r.error || r.status, r.category, r.type, r.finalUrl, r.finalStatus].map(csvCell).join(','));
+    });
+    download('http-status-report.csv', 'text/csv', '\ufeff' + lines.join('\r\n'));
+  });
+  $('jsonBtn').addEventListener('click', function () {
+    download('http-status-report.json', 'application/json', JSON.stringify(report, null, 2));
+  });
+
+  function setFilter(e) {
+    var b = e.target.closest('[data-filter]');
+    if (!b) return;
+    state.filter = b.getAttribute('data-filter');
+    state.page = 0;
+    render();
+  }
+  $('chips').addEventListener('click', setFilter);
+  $('stats').addEventListener('click', setFilter);
+  $('search').addEventListener('input', function (e) { state.query = e.target.value.trim(); state.page = 0; render(); });
+  $('pager').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-page]');
+    if (!b) return;
+    state.page += Number(b.getAttribute('data-page'));
+    render();
+  });
+  $('tbody').addEventListener('click', function (e) {
+    if (e.target.closest('a')) return;
+    var tr = e.target.closest('tr.row');
+    if (!tr) return;
+    var u = tr.getAttribute('data-url');
+    expanded[u] = !expanded[u];
+    render();
+  });
+  document.querySelector('thead').addEventListener('click', function (e) {
+    var th = e.target.closest('[data-sort]');
+    if (!th) return;
+    var key = th.getAttribute('data-sort');
+    if (state.sort === key) state.dir = -state.dir; else { state.sort = key; state.dir = 1; }
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
