@@ -96,7 +96,7 @@ declare namespace checkHttpStatus {
     include?: string | string[];
     /** Don't crawl matching URLs; they're still listed and checked. */
     exclude?: string | string[];
-    /** Default 1000. */
+    /** Default 5000. */
     maxPages?: number;
     /** Maximum link depth from the start URL. Default unlimited. */
     maxDepth?: number | null;

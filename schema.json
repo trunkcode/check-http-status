@@ -29,7 +29,7 @@
     "sitemaps": { "$ref": "#/definitions/stringList", "description": "Optional sitemap / sitemap index URLs." },
     "include": { "$ref": "#/definitions/stringList", "description": "Only crawl URLs matching one of these rules (substring, * wildcard or /regex/)." },
     "exclude": { "$ref": "#/definitions/stringList", "description": "Don't crawl URLs matching these rules. They are still listed and checked." },
-    "maxPages": { "type": "integer", "minimum": 1, "default": 1000 },
+    "maxPages": { "type": "integer", "minimum": 1, "default": 5000 },
     "maxDepth": { "type": ["integer", "null"], "minimum": 0, "description": "Maximum link depth from the start URL. Unlimited when omitted." },
     "maxRedirects": { "type": "integer", "minimum": 0, "maximum": 50, "default": 10 },
     "checkExternal": { "type": "boolean", "default": true, "description": "Check the status of external links. Excluded pages and assets are always checked." },

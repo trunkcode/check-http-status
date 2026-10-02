@@ -159,7 +159,7 @@ checkHttpStatus({
 | `sitemaps` | Array | | *Optional.* Sitemap / sitemap index URLs. With `crawl`, their pages are crawled too and orphans are flagged; without it, their URLs are checked. |
 | `include` | Array / String | | Only crawl URLs matching one of these rules. |
 | `exclude` | Array / String | | Don't crawl URLs matching these rules. They are still listed and checked. |
-| `maxPages` | Number | `1000` | Maximum pages to crawl. Later pages are listed as "Skipped (max pages)". |
+| `maxPages` | Number | `5000` | Maximum pages to crawl. Later pages are listed as "Skipped (max pages)". |
 | `maxDepth` | Number | unlimited | Maximum link depth from the start URL. |
 | `checkExternal` | Boolean | `true` | Check the status of external links. Excluded pages and assets are always checked. |
 | `checkAssets` | Boolean | `false` | Also check images, scripts, stylesheets, icons and iframes. |

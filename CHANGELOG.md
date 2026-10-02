@@ -6,6 +6,10 @@
 
 - `onPageLimit` option: when `maxPages` is reached, ask whether to keep crawling instead of stopping (for apps built on the library)
 
+### Changed
+
+- `maxPages` (`--max-pages`) now defaults to 5000 instead of 1000
+
 ## 2.0.1 - Oct 2, 2026
 
 ### Fixed
