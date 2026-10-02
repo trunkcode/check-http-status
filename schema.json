@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://unpkg.com/check-http-status/schema.json",
+  "title": "check-http-status config",
+  "description": "Settings shared by the check-http-status CLI (--config), the GitHub Action and apps built on the library. Durations are in milliseconds.",
+  "type": "object",
+  "additionalProperties": false,
+  "definitions": {
+    "stringList": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" } }
+      ]
+    },
+    "exportEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "format": { "enum": ["xlsx", "csv", "json", "html"], "default": "xlsx" },
+        "file": { "type": "string", "description": "Report path (relative to the config file)." },
+        "location": { "type": "string", "description": "Folder for an auto-named report (relative to the config file)." }
+      }
+    }
+  },
+  "properties": {
+    "$schema": { "type": "string" },
+    "crawl": { "$ref": "#/definitions/stringList", "description": "Website URL(s) to crawl. Pages are found by following internal links." },
+    "urls": { "$ref": "#/definitions/stringList", "description": "URLs to check without crawling." },
+    "sitemaps": { "$ref": "#/definitions/stringList", "description": "Optional sitemap / sitemap index URLs." },
+    "include": { "$ref": "#/definitions/stringList", "description": "Only crawl URLs matching one of these rules (substring, * wildcard or /regex/)." },
+    "exclude": { "$ref": "#/definitions/stringList", "description": "Don't crawl URLs matching these rules. They are still listed and checked." },
+    "maxPages": { "type": "integer", "minimum": 1, "default": 1000 },
+    "maxDepth": { "type": ["integer", "null"], "minimum": 0, "description": "Maximum link depth from the start URL. Unlimited when omitted." },
+    "maxRedirects": { "type": "integer", "minimum": 0, "maximum": 50, "default": 10 },
+    "checkExternal": { "type": "boolean", "default": true, "description": "Check the status of external links. Excluded pages and assets are always checked." },
+    "checkAssets": { "type": "boolean", "default": false, "description": "Also check images, scripts, stylesheets, icons and iframes." },
+    "subdomains": { "type": "boolean", "default": false, "description": "Treat subdomains as internal." },
+    "ignoreQuery": { "type": "boolean", "default": false, "description": "Strip query strings before comparing URLs." },
+    "respectRobots": { "type": "boolean", "default": false, "description": "Don't request URLs disallowed by robots.txt; honour Crawl-delay." },
+    "concurrency": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 },
+    "delay": { "type": "integer", "minimum": 0, "default": 0, "description": "Milliseconds between requests to the same site." },
+    "retries": { "type": "integer", "minimum": 0, "maximum": 10, "default": 2, "description": "Retries for 429/502/503/504 and dropped connections." },
+    "retryDelay": { "type": "integer", "minimum": 0, "default": 1000, "description": "Milliseconds before the first retry, doubled each time." },
+    "userAgent": { "type": "string" },
+    "skip200": { "type": "boolean", "default": false, "description": "Leave 200 OK URLs out of the output and reports." },
+    "silent": { "type": "boolean", "default": false },
+    "fail": { "type": "boolean", "default": false, "description": "CLI / GitHub Action: exit with code 1 if broken links are found." },
+    "export": {
+      "oneOf": [
+        { "$ref": "#/definitions/exportEntry" },
+        { "type": "array", "items": { "$ref": "#/definitions/exportEntry" } }
+      ]
+    },
+    "options": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "auth": {
+          "type": "object",
+          "description": "HTTP Basic auth. Prefer the CHS_AUTH environment variable over storing passwords here.",
+          "properties": { "username": { "type": "string" }, "password": { "type": "string" } }
+        },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "timeout": { "type": "integer", "minimum": 1000, "default": 15000, "description": "Milliseconds per request." },
+        "userAgent": { "type": "string" }
+      }
+    },
+    "googleDrive": {
+      "oneOf": [
+        { "type": "boolean" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "folderId": { "type": "string" },
+            "folderName": { "type": "string", "default": "HTTP Status Reports" },
+            "convert": { "type": "boolean", "default": true },
+            "public": { "type": "boolean", "default": false },
+            "keyFile": { "type": "string", "description": "Service account key file (relative to the config file)." },
+            "formats": { "$ref": "#/definitions/stringList" }
+          }
+        }
+      ]
+    },
+    "oneDrive": {
+      "oneOf": [
+        { "type": "boolean" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "folderPath": { "type": "string" },
+            "public": { "type": "boolean", "default": false },
+            "tenant": { "type": "string", "default": "common" },
+            "formats": { "$ref": "#/definitions/stringList" }
+          }
+        }
+      ]
+    }
+  }
+}

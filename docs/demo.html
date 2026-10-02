@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo crawl report · check-http-status</title>
+<style>
+  :root {
+    --bg: #f5f7fa; --card: #fff; --text: #1d2733; --muted: #607085; --border: #dde3ea;
+    --accent: #2563eb; --ok: #15803d; --ok-bg: #e6f4ea; --warn: #a16207; --warn-bg: #fff4d6;
+    --bad: #b91c1c; --bad-bg: #fde2e1; --gray-bg: #eef1f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f141a; --card: #171e26; --text: #e4e9ef; --muted: #8b9aab; --border: #2a3440;
+      --accent: #60a5fa; --ok: #4ade80; --ok-bg: #12301d; --warn: #facc15; --warn-bg: #3a300c;
+      --bad: #f87171; --bad-bg: #3b1515; --gray-bg: #222b35;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 64px; }
+  a { color: var(--accent); }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .meta { color: var(--muted); margin: 0 0 18px; word-break: break-all; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  .stat { background: var(--bg); border-radius: 8px; padding: 10px 12px; border: 0; text-align: left; color: inherit; font: inherit; cursor: pointer; }
+  .stat:hover { outline: 1px solid var(--border); }
+  .stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: 12px; }
+  .stat.ok b { color: var(--ok); } .stat.warn b { color: var(--warn); } .stat.bad b { color: var(--bad); }
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  input[type=search] { font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 8px 11px; width: 100%; max-width: 360px; }
+  button { font: inherit; border: 1px solid var(--border); background: var(--card); color: var(--text); padding: 7px 13px; border-radius: 7px; cursor: pointer; }
+  button:disabled { opacity: .45; cursor: default; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .chip { border-radius: 999px; padding: 4px 11px; font-size: 13px; }
+  .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chip small { opacity: .75; margin-left: 4px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; min-width: 720px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--bg); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); cursor: pointer; user-select: none; white-space: nowrap; }
+  tr.row:hover { background: var(--bg); cursor: pointer; }
+  td.url { word-break: break-all; }
+  td.url a { color: inherit; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .c-OK { background: var(--ok-bg); color: var(--ok); }
+  .c-Redirect { background: var(--warn-bg); color: var(--warn); }
+  .c-NotFound, .c-ClientError, .c-ServerError, .c-Error { background: var(--bad-bg); color: var(--bad); }
+  .c-Notchecked, .c-Other { background: var(--gray-bg); color: var(--muted); }
+  .c-Blocked { background: var(--gray-bg); color: var(--text); }
+  .tag { display: inline-block; font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; margin: 2px 4px 0 0; white-space: nowrap; }
+  .sub { color: var(--muted); font-size: 12px; margin-top: 3px; word-break: break-all; }
+  tr.detail > td { background: var(--bg); }
+  .detail h4 { margin: 4px 0 6px; font-size: 13px; }
+  .detail ul { margin: 0 0 8px; padding-left: 18px; }
+  .detail li { margin: 3px 0; word-break: break-all; }
+  .anchor { color: var(--muted); }
+  .pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 10px; color: var(--muted); }
+  .empty { text-align: center; color: var(--muted); padding: 30px; }
+  footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 24px; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title">HTTP status report</h1>
+  <p class="meta" id="meta"></p>
+
+  <section class="card"><div class="stats" id="stats"></div></section>
+
+  <section class="card">
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Filter by URL, link text or page…" aria-label="Filter results">
+      <div>
+        <button type="button" id="csvBtn">Download CSV (current view)</button>
+        <button type="button" id="jsonBtn">Download JSON</button>
+      </div>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th data-sort="status" style="width:150px">Status</th>
+          <th data-sort="url">URL</th>
+          <th data-sort="type" style="width:170px">Type</th>
+          <th data-sort="foundOn" style="width:110px">Found on</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="pager"></div>
+  </section>
+
+  <footer>Generated by <a href="https://github.com/trunkcode/check-http-status">check-http-status</a></footer>
+</main>
+
+<script id="report-data" type="application/json">{"results":[{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":0,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":[],"count":1,"kind":"sitemap","page":"https://www.acme-outdoor.example/page-sitemap.xml"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/about-us"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/unlinked-landing-page"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/privacy"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/team"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/new-arrivals"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/best-hiking-trails"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/packing-list?ref=blog"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/contact"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/basecamp-4p"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/summit-2p"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks/trailblazer-40l"},{"anchors":["Home"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/size-guide"}],"inSitemap":true,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":12,"scope":"crawl","status":200,"statusText":"OK","title":"Home | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":0,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":[],"count":1,"kind":"sitemap","page":"https://www.acme-outdoor.example/page-sitemap.xml"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/about-us"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/unlinked-landing-page"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/privacy"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/team"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/new-arrivals"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/best-hiking-trails"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/packing-list?ref=blog"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/contact"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/basecamp-4p"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/summit-2p"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks/trailblazer-40l"},{"anchors":["About"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/size-guide"}],"inSitemap":true,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":36,"scope":"crawl","status":200,"statusText":"OK","title":"About us | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/about-us"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":0,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":[],"count":1,"kind":"sitemap","page":"https://www.acme-outdoor.example/page-sitemap.xml"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/about-us"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/unlinked-landing-page"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/privacy"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/team"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/new-arrivals"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/best-hiking-trails"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/packing-list?ref=blog"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/contact"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/basecamp-4p"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/summit-2p"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks/trailblazer-40l"},{"anchors":["Products"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/size-guide"}],"inSitemap":true,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":43,"scope":"crawl","status":200,"statusText":"OK","title":"Products | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/products/"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":0,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":[],"count":1,"kind":"sitemap","page":"https://www.acme-outdoor.example/page-sitemap.xml"}],"inSitemap":true,"linkType":"page","note":"","orphan":true,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":68,"scope":"crawl","status":200,"statusText":"OK","title":"Spring campaign | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/unlinked-landing-page"},{"botProtection":"","category":"Redirect","contentType":"","crawled":false,"depth":0,"error":"","finalStatus":200,"finalUrl":"https://www.acme-outdoor.example/blog/","foundOn":[{"anchors":[],"count":1,"kind":"sitemap","page":"https://www.acme-outdoor.example/page-sitemap.xml"}],"inSitemap":true,"linkType":"page","note":"","orphan":true,"redirectChain":[{"status":200,"url":"https://www.acme-outdoor.example/blog/"}],"redirectCount":1,"redirectTo":"https://www.acme-outdoor.example/blog/","responseTime":79,"scope":"crawl","status":301,"statusText":"Moved Permanently","title":"","type":"internal","url":"https://www.acme-outdoor.example/old-blog"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":0,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":[],"count":1,"kind":"sitemap","page":"https://www.acme-outdoor.example/page-sitemap.xml"},{"anchors":["(redirect)"],"count":1,"kind":"redirect","page":"https://www.acme-outdoor.example/summer-sale"}],"inSitemap":true,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":91,"scope":"crawl","status":200,"statusText":"OK","title":"New arrivals | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/new-arrivals"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":0,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":[],"count":1,"kind":"sitemap","page":"https://www.acme-outdoor.example/post-sitemap.xml.gz"},{"anchors":["Best hiking trails"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/"}],"inSitemap":true,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":96,"scope":"crawl","status":200,"statusText":"OK","title":"Best hiking trails | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/blog/best-hiking-trails"},{"botProtection":"","category":"Not Found","contentType":"text/html","crawled":false,"depth":0,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":[],"count":1,"kind":"sitemap","page":"https://www.acme-outdoor.example/post-sitemap.xml.gz"}],"inSitemap":true,"linkType":"page","note":"","orphan":true,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":106,"scope":"crawl","status":404,"statusText":"Not Found","title":"","type":"internal","url":"https://www.acme-outdoor.example/blog/deleted-post"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/about-us"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/unlinked-landing-page"},{"anchors":["(redirect)"],"count":1,"kind":"redirect","page":"https://www.acme-outdoor.example/old-blog"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/privacy"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/team"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/new-arrivals"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/best-hiking-trails"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/packing-list?ref=blog"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/contact"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/basecamp-4p"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/summit-2p"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks/trailblazer-40l"},{"anchors":["Blog"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/size-guide"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":32,"scope":"crawl","status":200,"statusText":"OK","title":"Blog | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/blog/"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/about-us"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/unlinked-landing-page"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/privacy"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/team"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/new-arrivals"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/best-hiking-trails"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/packing-list?ref=blog"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/contact"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/basecamp-4p"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/summit-2p"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks/trailblazer-40l"},{"anchors":["Contact"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/size-guide"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":84,"scope":"crawl","status":200,"statusText":"OK","title":"Contact | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/contact"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Tents"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/"},{"anchors":["Tents"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/"},{"anchors":["Tents"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/new-arrivals"},{"anchors":["Get a tent"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/best-hiking-trails"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":105,"scope":"crawl","status":200,"statusText":"OK","title":"Tents | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/products/tents"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Backpacks"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/"},{"anchors":["Backpacks"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/"},{"anchors":["Backpacks"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/packing-list?ref=blog"},{"anchors":["Back to backpacks"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks/trailblazer-40l"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":124,"scope":"crawl","status":200,"statusText":"OK","title":"Backpacks | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/products/backpacks"},{"botProtection":"","category":"Redirect","contentType":"","crawled":false,"depth":1,"error":"","finalStatus":200,"finalUrl":"https://www.acme-outdoor.example/new-arrivals","foundOn":[{"anchors":["Summer sale"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[{"status":200,"url":"https://www.acme-outdoor.example/new-arrivals"}],"redirectCount":1,"redirectTo":"https://www.acme-outdoor.example/new-arrivals","responseTime":23,"scope":"crawl","status":301,"statusText":"Moved Permanently","title":"","type":"internal","url":"https://www.acme-outdoor.example/summer-sale"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":false,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Help centre"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":17,"scope":"excluded","status":200,"statusText":"OK","title":"","type":"internal","url":"https://www.acme-outdoor.example/docs/"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/about-us"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/unlinked-landing-page"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/privacy"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/team"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/new-arrivals"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/best-hiking-trails"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/packing-list?ref=blog"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/contact"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/basecamp-4p"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/summit-2p"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks/trailblazer-40l"},{"anchors":["Privacy"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/size-guide"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":17,"scope":"crawl","status":200,"statusText":"OK","title":"Privacy | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/privacy"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":false,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/about-us"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/unlinked-landing-page"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/privacy"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/team"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/new-arrivals"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/best-hiking-trails"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/packing-list?ref=blog"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/contact"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/basecamp-4p"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/summit-2p"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks/trailblazer-40l"},{"anchors":["Instagram"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/size-guide"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":44,"scope":"external","status":200,"statusText":"OK","title":"","type":"external","url":"https://partner-site.example/acme-outdoor"},{"botProtection":"","category":"OK","contentType":"application/octet-stream","crawled":false,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["(image)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/"}],"inSitemap":false,"linkType":"asset","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":19,"scope":"asset","status":200,"statusText":"OK","title":"","type":"internal","url":"https://www.acme-outdoor.example/images/hero.jpg"},{"botProtection":"","category":"OK","contentType":"application/octet-stream","crawled":false,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/about-us"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/unlinked-landing-page"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/privacy"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/team"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/new-arrivals"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/best-hiking-trails"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/packing-list?ref=blog"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/contact"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/basecamp-4p"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/summit-2p"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks/trailblazer-40l"},{"anchors":["(stylesheet)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/size-guide"}],"inSitemap":false,"linkType":"asset","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":27,"scope":"asset","status":200,"statusText":"OK","title":"","type":"internal","url":"https://www.acme-outdoor.example/assets/style.css"},{"botProtection":"","category":"OK","contentType":"application/octet-stream","crawled":false,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/about-us"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/unlinked-landing-page"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/privacy"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/team"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/new-arrivals"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/best-hiking-trails"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/packing-list?ref=blog"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/contact"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/basecamp-4p"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/summit-2p"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks/trailblazer-40l"},{"anchors":["(icon)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/size-guide"}],"inSitemap":false,"linkType":"asset","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":27,"scope":"asset","status":200,"statusText":"OK","title":"","type":"internal","url":"https://www.acme-outdoor.example/favicon.ico"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Meet the team"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/about-us"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":17,"scope":"crawl","status":200,"statusText":"OK","title":"Team | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/team"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":false,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Our partners"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/about-us"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":60,"scope":"external","status":200,"statusText":"OK","title":"","type":"external","url":"https://partner-site.example/partners"},{"botProtection":"","category":"Redirect","contentType":"","crawled":false,"depth":1,"error":"","finalStatus":null,"finalUrl":"https://jobs.example.invalid/acme","foundOn":[{"anchors":["Careers"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/about-us"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[{"status":null,"url":"https://jobs.example.invalid/acme"}],"redirectCount":1,"redirectTo":"https://jobs.example.invalid/acme","responseTime":18,"scope":"crawl","status":301,"statusText":"Moved Permanently","title":"","type":"internal","url":"https://www.acme-outdoor.example/careers"},{"botProtection":"","category":"Redirect","contentType":"","crawled":false,"depth":1,"error":"","finalStatus":404,"finalUrl":"https://www.acme-outdoor.example/collections/sleeping-bags","foundOn":[{"anchors":["Sleeping bags"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[{"status":302,"url":"https://www.acme-outdoor.example/products/sleeping-bags/"},{"status":404,"url":"https://www.acme-outdoor.example/collections/sleeping-bags"}],"redirectCount":2,"redirectTo":"https://www.acme-outdoor.example/products/sleeping-bags/","responseTime":17,"scope":"crawl","status":301,"statusText":"Moved Permanently","title":"","type":"internal","url":"https://www.acme-outdoor.example/products/sleeping-bags"},{"botProtection":"","category":"Server Error","contentType":"text/html","crawled":false,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Stoves"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/"},{"anchors":["Stoves"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/packing-list?ref=blog"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":17,"scope":"crawl","status":500,"statusText":"Internal Server Error","title":"","type":"internal","url":"https://www.acme-outdoor.example/products/stoves"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":2,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Packing list"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":15,"scope":"crawl","status":200,"statusText":"OK","title":"Packing list | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/blog/packing-list?ref=blog"},{"botProtection":"","category":"Not Found","contentType":"text/html","crawled":false,"depth":2,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Old news"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":77,"scope":"crawl","status":410,"statusText":"Gone","title":"","type":"internal","url":"https://www.acme-outdoor.example/blog/2019/old-news"},{"botProtection":"","category":"Error","contentType":"","crawled":false,"depth":1,"error":"ENOTFOUND: getaddrinfo ENOTFOUND jobs.example.invalid","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["(redirect)"],"count":1,"kind":"redirect","page":"https://www.acme-outdoor.example/careers"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":null,"scope":"external","status":null,"statusText":"","title":"","type":"external","url":"https://jobs.example.invalid/acme"},{"botProtection":"","category":"Redirect","contentType":"","crawled":false,"depth":1,"error":"","finalStatus":404,"finalUrl":"https://www.acme-outdoor.example/collections/sleeping-bags","foundOn":[{"anchors":["(redirect)"],"count":1,"kind":"redirect","page":"https://www.acme-outdoor.example/products/sleeping-bags"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[{"status":404,"url":"https://www.acme-outdoor.example/collections/sleeping-bags"}],"redirectCount":1,"redirectTo":"https://www.acme-outdoor.example/collections/sleeping-bags","responseTime":17,"scope":"crawl","status":302,"statusText":"Found","title":"","type":"internal","url":"https://www.acme-outdoor.example/products/sleeping-bags/"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":false,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Trail guide"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/best-hiking-trails"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":47,"scope":"external","status":200,"statusText":"OK","title":"","type":"external","url":"https://partner-site.example/trail-guide"},{"botProtection":"","category":"Not Found","contentType":"text/html","crawled":false,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Source article"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/best-hiking-trails"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":12,"scope":"external","status":404,"statusText":"Not Found","title":"","type":"external","url":"https://partner-site.example/deleted-article"},{"botProtection":"","category":"Not Found","contentType":"text/html","crawled":false,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["(image)"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/best-hiking-trails"}],"inSitemap":false,"linkType":"asset","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":9,"scope":"asset","status":404,"statusText":"Not Found","title":"","type":"internal","url":"https://www.acme-outdoor.example/images/missing-trail.jpg"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":false,"depth":3,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Checklist PDF"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/blog/packing-list?ref=blog"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":9,"scope":"external","status":200,"statusText":"OK","title":"","type":"external","url":"https://partner-site.example/head-not-allowed"},{"botProtection":"","category":"Not Found","contentType":"text/html","crawled":false,"depth":1,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["(redirect)"],"count":1,"kind":"redirect","page":"https://www.acme-outdoor.example/products/sleeping-bags/"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":45,"scope":"crawl","status":404,"statusText":"Not Found","title":"","type":"internal","url":"https://www.acme-outdoor.example/collections/sleeping-bags"},{"botProtection":"","category":"Redirect","contentType":"","crawled":false,"depth":2,"error":"","finalStatus":302,"finalUrl":"https://www.acme-outdoor.example/store-locator","foundOn":[{"anchors":["Store locator"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/contact"},{"anchors":["(redirect)"],"count":1,"kind":"redirect","page":"https://www.acme-outdoor.example/stores"}],"inSitemap":false,"linkType":"page","note":"Redirect loop","orphan":false,"redirectChain":[{"status":302,"url":"https://www.acme-outdoor.example/stores"},{"status":302,"url":"https://www.acme-outdoor.example/store-locator"}],"redirectCount":2,"redirectTo":"https://www.acme-outdoor.example/stores","responseTime":45,"scope":"crawl","status":302,"statusText":"Found","title":"","type":"internal","url":"https://www.acme-outdoor.example/store-locator"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":2,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Summit 2P"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":39,"scope":"crawl","status":200,"statusText":"OK","title":"Summit 2P | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/products/tents/summit-2p"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":2,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Basecamp 4P"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":24,"scope":"crawl","status":200,"statusText":"OK","title":"Basecamp 4P | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/products/tents/basecamp-4p"},{"botProtection":"","category":"Redirect","contentType":"","crawled":false,"depth":2,"error":"","finalStatus":302,"finalUrl":"https://www.acme-outdoor.example/stores","foundOn":[{"anchors":["(redirect)"],"count":1,"kind":"redirect","page":"https://www.acme-outdoor.example/store-locator"}],"inSitemap":false,"linkType":"page","note":"Redirect loop","orphan":false,"redirectChain":[{"status":302,"url":"https://www.acme-outdoor.example/store-locator"},{"status":302,"url":"https://www.acme-outdoor.example/stores"}],"redirectCount":2,"redirectTo":"https://www.acme-outdoor.example/store-locator","responseTime":27,"scope":"crawl","status":302,"statusText":"Found","title":"","type":"internal","url":"https://www.acme-outdoor.example/stores"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":2,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Trailblazer 40L"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":29,"scope":"crawl","status":200,"statusText":"OK","title":"Trailblazer 40L | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/products/backpacks/trailblazer-40l"},{"botProtection":"","category":"Server Error","contentType":"text/html","crawled":false,"depth":3,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Reviews"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/tents/summit-2p"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":2,"scope":"crawl","status":503,"statusText":"Service Unavailable","title":"","type":"internal","url":"https://www.acme-outdoor.example/reviews/summit-2p"},{"botProtection":"","category":"OK","contentType":"text/html","crawled":true,"depth":3,"error":"","finalStatus":null,"finalUrl":"","foundOn":[{"anchors":["Size guide"],"count":1,"kind":"link","page":"https://www.acme-outdoor.example/products/backpacks/trailblazer-40l"}],"inSitemap":false,"linkType":"page","note":"","orphan":false,"redirectChain":[],"redirectCount":0,"redirectTo":"","responseTime":2,"scope":"crawl","status":200,"statusText":"OK","title":"Size guide | Acme Outdoor","type":"internal","url":"https://www.acme-outdoor.example/size-guide"}],"summary":{"active":0,"checked":40,"counts":{"OK":25,"Redirect":7,"Not Found":5,"Server Error":2,"Error":1},"discovered":40,"elapsed":3197,"finishedAt":1790936022627,"mode":"crawl","pageLimitReached":false,"pagesCrawled":17,"queued":0,"startedAt":1790936019430,"state":"done","crawl":["https://www.acme-outdoor.example/"],"exclude":["/docs"],"include":[],"sitemaps":["https://www.acme-outdoor.example/sitemap_index.xml"],"issues":15,"orphans":3,"robotsBlocked":0}}</script>
+<script>
+(function () {
+  'use strict';
+
+  var report = JSON.parse(document.getElementById('report-data').textContent);
+  var results = report.results;
+  var summary = report.summary;
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  };
+  var ISSUES = ['Redirect', 'Not Found', 'Client Error', 'Server Error', 'Error'];
+  var SCOPES = { crawl: 'crawled', list: 'checked', excluded: 'excluded', external: 'not crawled', asset: 'asset', limit: 'max pages', depth: 'max depth', robots: 'robots.txt' };
+  var FILTERS = [
+    ['all', 'All', function () { return true; }],
+    ['issues', 'All issues', function (r) { return ISSUES.indexOf(r.category) !== -1; }],
+    ['Redirect', 'Redirects', function (r) { return r.category === 'Redirect'; }],
+    ['Not Found', '404 / 410', function (r) { return r.category === 'Not Found'; }],
+    ['Client Error', 'Other 4xx', function (r) { return r.category === 'Client Error'; }],
+    ['Server Error', '5xx', function (r) { return r.category === 'Server Error'; }],
+    ['Error', 'Errors / timeouts', function (r) { return r.category === 'Error'; }],
+    ['Blocked', 'Blocked by bot protection', function (r) { return r.category === 'Blocked'; }],
+    ['OK', 'OK', function (r) { return r.category === 'OK'; }],
+    ['internal', 'Internal', function (r) { return r.type === 'internal'; }],
+    ['external', 'External', function (r) { return r.type === 'external'; }],
+    ['excluded', 'Excluded', function (r) { return r.scope === 'excluded'; }],
+    ['asset', 'Assets', function (r) { return r.linkType === 'asset'; }],
+    ['orphan', 'Orphan pages', function (r) { return r.orphan; }],
+    ['robots', 'Blocked by robots.txt', function (r) { return r.scope === 'robots'; }],
+    ['notchecked', 'Not checked', function (r) { return r.category === 'Not checked'; }]
+  ];
+  var PAGE_SIZE = 100;
+  var state = { filter: countOf('issues') ? 'issues' : 'all', query: '', page: 0, sort: null, dir: 1 };
+  var expanded = {};
+
+  function countOf(key) {
+    var fn = FILTERS.filter(function (f) { return f[0] === key; })[0][2];
+    return results.filter(fn).length;
+  }
+
+  // Header
+  $('title').textContent = summary.mode === 'crawl' ? 'Crawl report' : 'HTTP status report';
+  document.title = $('title').textContent + (summary.crawl[0] ? ' · ' + summary.crawl[0] : '');
+  var meta = [];
+  if (summary.crawl.length) meta.push(summary.crawl.join(', '));
+  if (summary.sitemaps.length) meta.push(summary.sitemaps.length + ' sitemap(s)');
+  meta.push(new Date(summary.finishedAt || summary.startedAt || Date.now()).toLocaleString());
+  meta.push(Math.round(summary.elapsed / 1000) + 's');
+  if (summary.pageLimitReached) meta.push('max pages reached');
+  $('meta').textContent = meta.join(' · ');
+
+  var c = summary.counts || {};
+  var tiles = [
+    ['', 'all', results.length, 'URLs found'],
+    ['', 'internal', summary.pagesCrawled, 'Pages crawled'],
+    ['ok', 'OK', c.OK || 0, 'OK'],
+    ['warn', 'Redirect', c.Redirect || 0, 'Redirects'],
+    ['bad', 'Not Found', c['Not Found'] || 0, '404 / 410'],
+    ['bad', 'issues', (c['Client Error'] || 0) + (c['Server Error'] || 0), 'Other 4xx / 5xx'],
+    ['bad', 'Error', c.Error || 0, 'Errors']
+  ];
+  if (summary.orphans) tiles.push(['warn', 'orphan', summary.orphans, 'Orphan pages']);
+  $('stats').innerHTML = tiles.map(function (t) {
+    return '<button type="button" class="stat ' + t[0] + '" data-filter="' + esc(t[1]) + '"><b>' + t[2].toLocaleString() + '</b><span>' + esc(t[3]) + '</span></button>';
+  }).join('');
+
+  function filtered() {
+    var fn = FILTERS.filter(function (f) { return f[0] === state.filter; })[0][2];
+    var q = state.query.toLowerCase();
+    var rows = results.filter(fn);
+    if (q) {
+      rows = rows.filter(function (r) {
+        if (r.url.toLowerCase().indexOf(q) !== -1 || (r.redirectTo || '').toLowerCase().indexOf(q) !== -1) return true;
+        return r.foundOn.some(function (s) {
+          return s.page.toLowerCase().indexOf(q) !== -1 || s.anchors.some(function (a) { return a.toLowerCase().indexOf(q) !== -1; });
+        });
+      });
+    }
+    if (state.sort) {
+      var val = {
+        status: function (r) { return r.status == null ? (r.error ? 999 : 1000) : r.status; },
+        url: function (r) { return r.url; },
+        type: function (r) { return r.type + r.scope; },
+        foundOn: function (r) { return r.foundOn.length; }
+      }[state.sort];
+      rows = rows.slice().sort(function (a, b) {
+        var x = val(a), y = val(b);
+        return (x > y ? 1 : x < y ? -1 : 0) * state.dir;
+      });
+    }
+    return rows;
+  }
+
+  function rowHtml(r) {
+    var cls = 'c-' + r.category.replace(/\s/g, '');
+    var label = r.error ? 'Error' : (r.status == null ? '—' : r.status);
+    var sub = '';
+    if (r.botProtection) sub += '<div class="sub">' + esc(r.note) + '</div>';
+    if (r.redirectTo) {
+      sub += '<div class="sub">→ ' + esc(r.redirectTo) + '</div>';
+      if (r.redirectCount > 1 || r.note) {
+        sub += '<div class="sub">⇒ ' + esc(r.finalUrl) + (r.finalStatus != null ? ' (' + r.finalStatus + ')' : '') + ' · ' + r.redirectCount + ' hops' + (r.note ? ' · ' + esc(r.note) : '') + '</div>';
+      }
+    }
+    if (r.error) sub += '<div class="sub">' + esc(r.error) + '</div>';
+
+    var tags = '<span class="tag">' + esc(r.type) + '</span><span class="tag">' + esc(SCOPES[r.scope] || r.scope) + '</span>';
+    if (r.linkType === 'asset') tags += '<span class="tag">asset</span>';
+    if (r.inSitemap) tags += '<span class="tag">sitemap</span>';
+    if (r.orphan) tags += '<span class="tag">orphan</span>';
+
+    var open = !!expanded[r.url];
+    var html = '<tr class="row" data-url="' + esc(r.url) + '">' +
+      '<td><span class="pill ' + cls + '" title="' + esc(r.error || (r.status + ' ' + r.statusText)) + '">' + esc(label) + '</span><div class="sub">' + esc(r.category === 'Not checked' ? 'not checked' : r.category) + '</div></td>' +
+      '<td class="url"><a href="' + esc(r.url) + '" target="_blank" rel="noopener noreferrer">' + esc(r.url) + '</a>' + sub + '</td>' +
+      '<td>' + tags + '</td>' +
+      '<td>' + (r.foundOn.length ? (open ? '▾ ' : '▸ ') + r.foundOn.length + ' page' + (r.foundOn.length > 1 ? 's' : '') : '<span class="tag">start</span>') + '</td></tr>';
+
+    if (open) {
+      var detail = '';
+      if (r.redirectChain.length) {
+        detail += '<h4>Redirect chain</h4><ul><li>' + esc(r.url) + ' (' + r.status + ')</li>' + r.redirectChain.map(function (h) {
+          return '<li>→ ' + esc(h.url) + ' (' + (h.status == null ? '?' : h.status) + ')</li>';
+        }).join('') + '</ul>';
+      }
+      if (r.foundOn.length) {
+        detail += '<h4>Found on</h4><ul>' + r.foundOn.map(function (s) {
+          var via = s.kind === 'redirect' ? ' <span class="tag">redirect</span>' : s.kind === 'sitemap' ? ' <span class="tag">sitemap</span>' : '';
+          var anchors = s.anchors.filter(function (a) { return a.charAt(0) !== '('; });
+          return '<li><a href="' + esc(s.page) + '" target="_blank" rel="noopener noreferrer">' + esc(s.page) + '</a>' + via +
+            (anchors.length ? ' <span class="anchor">— “' + esc(anchors.join('”, “')) + '”</span>' : '') +
+            (s.count > 1 ? ' <span class="tag">×' + s.count + '</span>' : '') + '</li>';
+        }).join('') + '</ul>';
+      }
+      if (r.title) detail += '<div class="sub">Title: ' + esc(r.title) + '</div>';
+      if (r.responseTime != null) detail += '<div class="sub">Response: ' + r.responseTime + ' ms' + (r.contentType ? ' · ' + esc(r.contentType) : '') + '</div>';
+      html += '<tr class="detail"><td></td><td colspan="3">' + detail + '</td></tr>';
+    }
+    return html;
+  }
+
+  function render() {
+    $('chips').innerHTML = FILTERS.map(function (f) {
+      var n = results.filter(f[2]).length;
+      if (!n && ['all', 'issues', state.filter].indexOf(f[0]) === -1) return '';
+      return '<button type="button" class="chip' + (f[0] === state.filter ? ' active' : '') + '" data-filter="' + esc(f[0]) + '">' + esc(f[1]) + '<small>' + n.toLocaleString() + '</small></button>';
+    }).join('');
+
+    var rows = filtered();
+    var pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    if (state.page >= pages) state.page = pages - 1;
+    var slice = rows.slice(state.page * PAGE_SIZE, (state.page + 1) * PAGE_SIZE);
+
+    $('tbody').innerHTML = slice.length ? slice.map(rowHtml).join('') : '<tr><td colspan="4" class="empty">No URLs match this filter.</td></tr>';
+    $('pager').innerHTML = rows.length > PAGE_SIZE
+      ? '<button type="button" data-page="-1"' + (state.page === 0 ? ' disabled' : '') + '>‹ Prev</button><span>Page ' + (state.page + 1) + ' of ' + pages + ' · ' + rows.length.toLocaleString() + ' URLs</span><button type="button" data-page="1"' + (state.page >= pages - 1 ? ' disabled' : '') + '>Next ›</button>'
+      : '<span>' + rows.length.toLocaleString() + ' URLs</span>';
+  }
+
+  function download(name, type, text) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: type }));
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+
+  function csvCell(v) {
+    var s = String(v == null ? '' : v);
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  $('csvBtn').addEventListener('click', function () {
+    var lines = [['URL', 'Found On', 'Redirect To', 'Status', 'Category', 'Type', 'Final URL', 'Final Status'].join(',')];
+    filtered().forEach(function (r) {
+      var foundOn = r.foundOn.map(function (s) { return s.page; }).join('\n');
+      lines.push([r.url, foundOn, r.redirectTo, r.error || r.status, r.category, r.type, r.finalUrl, r.finalStatus].map(csvCell).join(','));
+    });
+    download('http-status-report.csv', 'text/csv', '\ufeff' + lines.join('\r\n'));
+  });
+  $('jsonBtn').addEventListener('click', function () {
+    download('http-status-report.json', 'application/json', JSON.stringify(report, null, 2));
+  });
+
+  function setFilter(e) {
+    var b = e.target.closest('[data-filter]');
+    if (!b) return;
+    state.filter = b.getAttribute('data-filter');
+    state.page = 0;
+    render();
+  }
+  $('chips').addEventListener('click', setFilter);
+  $('stats').addEventListener('click', setFilter);
+  $('search').addEventListener('input', function (e) { state.query = e.target.value.trim(); state.page = 0; render(); });
+  $('pager').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-page]');
+    if (!b) return;
+    state.page += Number(b.getAttribute('data-page'));
+    render();
+  });
+  $('tbody').addEventListener('click', function (e) {
+    if (e.target.closest('a')) return;
+    var tr = e.target.closest('tr.row');
+    if (!tr) return;
+    var u = tr.getAttribute('data-url');
+    expanded[u] = !expanded[u];
+    render();
+  });
+  document.querySelector('thead').addEventListener('click', function (e) {
+    var th = e.target.closest('[data-sort]');
+    if (!th) return;
+    var key = th.getAttribute('data-sort');
+    if (state.sort === key) state.dir = -state.dir; else { state.sort = key; state.dir = 1; }
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
