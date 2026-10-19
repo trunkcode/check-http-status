@@ -151,6 +151,12 @@ declare namespace checkHttpStatus {
     /** Times the link appears on that page. */
     count: number;
     kind: 'link' | 'redirect' | 'sitemap' | 'seed';
+    /** Images only: `alt` texts used on that page. */
+    alt?: string[];
+    /** Images only: `title` attributes used on that page. */
+    imageTitle?: string[];
+    /** Images only: `<img>` tags on that page without an `alt` attribute. */
+    missingAlt?: number;
   }
 
   interface RedirectHop {
@@ -167,6 +173,8 @@ declare namespace checkHttpStatus {
     error: string;
     type: 'internal' | 'external';
     linkType: 'page' | 'asset';
+    /** Assets only: the tag it was found in. */
+    assetType: '' | 'image' | 'script' | 'stylesheet' | 'icon' | 'media' | 'iframe';
     scope: Scope;
     redirectTo: string;
     redirectChain: RedirectHop[];
@@ -179,6 +187,15 @@ declare namespace checkHttpStatus {
     note: string;
     foundOn: FoundOn[];
     title: string;
+    /** Crawled pages: first `<h1>` and how many there are. */
+    h1: string;
+    h1Count: number;
+    metaDescription: string;
+    /** Images: every `alt` text and `title` attribute used for it. */
+    alt: string[];
+    imageTitle: string[];
+    /** Images: some `<img>` has no `alt` attribute (`alt=""` is fine). */
+    missingAlt: boolean;
     contentType: string;
     responseTime: number | null;
     depth: number;

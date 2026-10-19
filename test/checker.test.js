@@ -118,6 +118,37 @@ describe('crawl mode', () => {
     assert.strictEqual(image.linkType, 'asset');
     assert.strictEqual(image.status, 404);
     assert.strictEqual(find(report, '/assets/style.css').status, 200);
+    assert.strictEqual(find(report, '/assets/style.css').assetType, 'stylesheet');
+    assert.strictEqual(find(report, '/favicon.ico').assetType, 'icon');
+    assert.strictEqual(find(report, '/').assetType, '');
+  });
+
+  test('records H1 and meta description for crawled pages', () => {
+    const home = find(report, '/');
+    assert.strictEqual(home.h1, 'Gear for every trail');
+    assert.strictEqual(home.h1Count, 1);
+    assert.strictEqual(home.metaDescription, 'Tents, backpacks and stoves.');
+
+    const about = find(report, '/about-us');
+    assert.strictEqual(about.h1, 'About');
+    assert.strictEqual(about.h1Count, 2);
+    assert.strictEqual(about.metaDescription, '');
+    assert.strictEqual(find(report, '/privacy').h1Count, 0);
+  });
+
+  test('records alt text and title for images, per page', () => {
+    const hero = find(report, '/images/hero.jpg');
+    assert.strictEqual(hero.assetType, 'image');
+    assert.deepStrictEqual(hero.alt, ['Hero']);
+    assert.deepStrictEqual(hero.imageTitle, ['Hero banner']);
+    assert.strictEqual(hero.missingAlt, true);
+
+    const onHome = hero.foundOn.find((source) => source.page === site.origin + '/');
+    assert.deepStrictEqual([onHome.alt, onHome.missingAlt], [['Hero'], 0]);
+    const onAbout = hero.foundOn.find((source) => source.page === site.origin + '/about-us');
+    assert.deepStrictEqual([onAbout.alt, onAbout.imageTitle, onAbout.missingAlt], [[], ['Hero banner'], 1]);
+
+    assert.strictEqual(find(report, '/images/missing-trail.jpg').missingAlt, false);
   });
 
   test('reads sitemap indexes and gzipped sitemaps, and flags orphan pages', () => {
