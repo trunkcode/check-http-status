@@ -238,8 +238,10 @@ await writeReport(report, 'report.xlsx', 'xlsx');
 | `error` | Connection error (timeout, DNS, TLS…) if the request failed. |
 | `type`, `linkType`, `scope` | `internal`/`external`, `page`/`asset`, and whether it was crawled, excluded, checked or skipped. |
 | `redirectTo`, `redirectChain`, `finalUrl`, `finalStatus`, `redirectCount` | Redirect details. `note` is set for loops or too many redirects. |
-| `foundOn` | `[{ page, anchors, count, kind }]`, where `kind` is `link`, `redirect` or `sitemap`. |
-| `title`, `contentType`, `responseTime`, `depth`, `inSitemap`, `orphan` | Page details. |
+| `foundOn` | `[{ page, anchors, count, kind }]`, where `kind` is `link`, `redirect` or `sitemap`. Images also have `alt`, `imageTitle` and `missingAlt` for that page. |
+| `title`, `h1`, `h1Count`, `metaDescription` | Crawled pages: `<title>`, the first `<h1>` and how many there are, and the meta description. |
+| `assetType`, `alt`, `imageTitle`, `missingAlt` | Assets: `image`, `script`, `stylesheet`, `icon`, `media` or `iframe`. Images: every alt text and `title` used for it, and whether an `<img>` has no `alt` attribute (`alt=""` counts as set). |
+| `contentType`, `responseTime`, `depth`, `inSitemap`, `orphan` | Page details. |
 
 ## Config file
 

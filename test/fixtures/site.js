@@ -4,8 +4,8 @@ const http = require('http');
 const zlib = require('zlib');
 
 // Fake "Acme Outdoor" site with every kind of problem, plus a fake external site.
-function layout(title, body) {
-  return `<!doctype html><html><head><title>${title} | Acme Outdoor</title>` +
+function layout(title, body, head = '') {
+  return `<!doctype html><html><head><title>${title} | Acme Outdoor</title>${head}` +
     '<link rel="stylesheet" href="/assets/style.css"><link rel="icon" href="/favicon.ico"></head><body>' +
     '<nav><a href="/">Home</a> <a href="/products/">Products</a> <a href="/blog/">Blog</a> <a href="/about-us">About</a> <a href="/contact">Contact</a></nav>' +
     `<main>${body}</main>` +
@@ -14,8 +14,8 @@ function layout(title, body) {
 }
 
 const PAGES = {
-  '/': layout('Home', '<h1>Gear for every trail</h1><a href="/products/tents">Tents</a> <a href="/products/backpacks">Backpacks</a> <a href="/summer-sale">Summer sale</a> <a href="/docs/">Help centre</a> <img src="/images/hero.jpg" alt="Hero">'),
-  '/about-us': layout('About us', '<p>Founded in 2009.</p><a href="/team">Meet the team</a> <a href="EXTERNAL/partners">Our partners</a> <a href="/careers">Careers</a>'),
+  '/': layout('Home', '<h1>Gear for every trail</h1><a href="/products/tents">Tents</a> <a href="/products/backpacks">Backpacks</a> <a href="/summer-sale">Summer sale</a> <a href="/docs/">Help centre</a> <img src="/images/hero.jpg" alt="Hero">', '<meta name="Description" content="  Tents, backpacks and stoves.  ">'),
+  '/about-us': layout('About us', '<h1>About</h1><h1>Our story</h1><img src="/images/hero.jpg" title="Hero banner"><p>Founded in 2009.</p><a href="/team">Meet the team</a> <a href="EXTERNAL/partners">Our partners</a> <a href="/careers">Careers</a>'),
   '/blog/': layout('Blog', '<a href="/blog/best-hiking-trails">Best hiking trails</a> <a href="/blog/packing-list?ref=blog">Packing list</a> <a href="/blog/2019/old-news">Old news</a>'),
   '/blog/best-hiking-trails': layout('Best hiking trails', '<p>Our picks.</p><a href="/products/tents">Get a tent</a> <a href="EXTERNAL/trail-guide">Trail guide</a> <a href="EXTERNAL/deleted-article">Source article</a> <img src="/images/missing-trail.jpg" alt="Trail">'),
   '/blog/packing-list': layout('Packing list', '<a href="/products/backpacks">Backpacks</a> <a href="/products/stoves">Stoves</a> <a href="EXTERNAL/head-not-allowed">Checklist PDF</a>'),
