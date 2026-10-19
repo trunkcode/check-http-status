@@ -1,6 +1,6 @@
 # check-http-status changelog
 
-## 2.2.0 - Unreleased
+## 2.2.0 - Oct 19, 2026
 
 ### New
 
@@ -13,6 +13,7 @@
 ### Fixed
 
 - HTML report: search only looked inside the selected filter (*All issues* by default), so a URL without an issue was never found. Filter counts now follow the search, and a search with no matches in the selected filter offers to show all matches
+- HTML report: every value is now HTML-escaped, including status codes and counts, so an edited or crafted JSON report can't inject markup
 - HTML report: search no longer matches every link on a page whose URL contains the search text; it looks in the URL, redirect, title, H1, link text and alt text
 
 ## 2.1.0 - Oct 2, 2026

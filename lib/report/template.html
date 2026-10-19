@@ -200,7 +200,7 @@
   ];
   if (summary.orphans) tiles.push(['warn', 'orphan', summary.orphans, 'Orphan pages']);
   $('stats').innerHTML = tiles.map(function (t) {
-    return '<button type="button" class="stat ' + t[0] + '" data-filter="' + esc(t[1]) + '"><b>' + t[2].toLocaleString() + '</b><span>' + esc(t[3]) + '</span></button>';
+    return '<button type="button" class="stat ' + t[0] + '" data-filter="' + esc(t[1]) + '"><b>' + esc(t[2].toLocaleString()) + '</b><span>' + esc(t[3]) + '</span></button>';
   }).join('');
 
   function filtered() {
@@ -222,14 +222,14 @@
   }
 
   function rowHtml(r) {
-    var cls = 'c-' + r.category.replace(/\s/g, '');
+    var cls = esc('c-' + r.category.replace(/\s/g, ''));
     var label = r.error ? 'Error' : (r.status == null ? '—' : r.status);
     var sub = '';
     if (r.botProtection) sub += '<div class="sub">' + esc(r.note) + '</div>';
     if (r.redirectTo) {
       sub += '<div class="sub">→ ' + esc(r.redirectTo) + '</div>';
       if (r.redirectCount > 1 || r.note) {
-        sub += '<div class="sub">⇒ ' + esc(r.finalUrl) + (r.finalStatus != null ? ' (' + r.finalStatus + ')' : '') + ' · ' + r.redirectCount + ' hops' + (r.note ? ' · ' + esc(r.note) : '') + '</div>';
+        sub += '<div class="sub">⇒ ' + esc(r.finalUrl) + (r.finalStatus != null ? ' (' + esc(r.finalStatus) + ')' : '') + ' · ' + esc(r.redirectCount) + ' hops' + (r.note ? ' · ' + esc(r.note) : '') + '</div>';
       }
     }
     if (r.error) sub += '<div class="sub">' + esc(r.error) + '</div>';
@@ -245,13 +245,13 @@
       '<td><span class="pill ' + cls + '" title="' + esc(r.error || (r.status + ' ' + r.statusText)) + '">' + esc(label) + '</span><div class="sub">' + esc(r.category === 'Not checked' ? 'not checked' : r.category) + '</div></td>' +
       '<td class="url"><a href="' + esc(r.url) + '" target="_blank" rel="noopener noreferrer">' + esc(r.url) + '</a>' + sub + '</td>' +
       '<td>' + tags + '</td>' +
-      '<td>' + (r.foundOn.length ? (open ? '▾ ' : '▸ ') + r.foundOn.length + ' page' + (r.foundOn.length > 1 ? 's' : '') : '<span class="tag">start</span>') + '</td></tr>';
+      '<td>' + (r.foundOn.length ? (open ? '▾ ' : '▸ ') + esc(r.foundOn.length) + ' page' + (r.foundOn.length > 1 ? 's' : '') : '<span class="tag">start</span>') + '</td></tr>';
 
     if (open) {
       var detail = '';
       if (r.redirectChain.length) {
-        detail += '<h4>Redirect chain</h4><ul><li>' + esc(r.url) + ' (' + r.status + ')</li>' + r.redirectChain.map(function (h) {
-          return '<li>→ ' + esc(h.url) + ' (' + (h.status == null ? '?' : h.status) + ')</li>';
+        detail += '<h4>Redirect chain</h4><ul><li>' + esc(r.url) + ' (' + esc(r.status) + ')</li>' + r.redirectChain.map(function (h) {
+          return '<li>→ ' + esc(h.url) + ' (' + (h.status == null ? '?' : esc(h.status)) + ')</li>';
         }).join('') + '</ul>';
       }
       if (r.foundOn.length) {
@@ -261,15 +261,15 @@
           var alt = s.alt ? (s.alt.length ? ' <span class="anchor">— alt “' + esc(s.alt.join('”, “')) + '”</span>' : '') + (s.missingAlt ? ' <span class="tag">no alt</span>' : '') : '';
           return '<li><a href="' + esc(s.page) + '" target="_blank" rel="noopener noreferrer">' + esc(s.page) + '</a>' + via +
             (anchors.length ? ' <span class="anchor">— “' + esc(anchors.join('”, “')) + '”</span>' : '') + alt +
-            (s.count > 1 ? ' <span class="tag">×' + s.count + '</span>' : '') + '</li>';
+            (s.count > 1 ? ' <span class="tag">×' + esc(s.count) + '</span>' : '') + '</li>';
         }).join('') + '</ul>';
       }
       if (r.title) detail += '<div class="sub">Title: ' + esc(r.title) + '</div>';
-      if (r.h1) detail += '<div class="sub">H1: ' + esc(r.h1) + (r.h1Count > 1 ? ' (' + r.h1Count + ' H1s)' : '') + '</div>';
+      if (r.h1) detail += '<div class="sub">H1: ' + esc(r.h1) + (r.h1Count > 1 ? ' (' + esc(r.h1Count) + ' H1s)' : '') + '</div>';
       if (r.metaDescription) detail += '<div class="sub">Meta description: ' + esc(r.metaDescription) + '</div>';
       if (r.alt && r.alt.length) detail += '<div class="sub">Alt text: “' + esc(r.alt.join('”, “')) + '”</div>';
       if (r.imageTitle && r.imageTitle.length) detail += '<div class="sub">Image title: “' + esc(r.imageTitle.join('”, “')) + '”</div>';
-      if (r.responseTime != null) detail += '<div class="sub">Response: ' + r.responseTime + ' ms' + (r.contentType ? ' · ' + esc(r.contentType) : '') + '</div>';
+      if (r.responseTime != null) detail += '<div class="sub">Response: ' + esc(r.responseTime) + ' ms' + (r.contentType ? ' · ' + esc(r.contentType) : '') + '</div>';
       html += '<tr class="detail"><td></td><td colspan="3">' + detail + '</td></tr>';
     }
     return html;
