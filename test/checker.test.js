@@ -108,7 +108,7 @@ describe('crawl mode', () => {
   });
 
   test('reports DNS failures as errors', () => {
-    const careers = report.results.find((result) => result.url.startsWith('https://jobs.example.invalid'));
+    const careers = report.results.find((result) => new URL(result.url).hostname === 'jobs.example.invalid');
     assert.strictEqual(careers.category, 'Error');
     assert.ok(careers.error);
   });
