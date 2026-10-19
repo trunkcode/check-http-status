@@ -60,6 +60,7 @@
   .anchor { color: var(--muted); }
   .pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 10px; color: var(--muted); }
   .empty { text-align: center; color: var(--muted); padding: 30px; }
+  .empty button { margin-top: 8px; }
   footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 24px; }
 </style>
 </head>
@@ -72,7 +73,7 @@
 
   <section class="card">
     <div class="toolbar">
-      <input id="search" type="search" placeholder="Filter by URL, link text or page…" aria-label="Filter results">
+      <input id="search" type="search" placeholder="Search URL, title, H1, link or alt text…" aria-label="Filter results">
       <div>
         <button type="button" id="csvBtn">Download CSV (current view)</button>
         <button type="button" id="jsonBtn">Download JSON</button>
@@ -126,11 +127,48 @@
     ['external', 'External', function (r) { return r.type === 'external'; }],
     ['excluded', 'Excluded', function (r) { return r.scope === 'excluded'; }],
     ['asset', 'Assets', function (r) { return r.linkType === 'asset'; }],
+    ['image', 'Images', function (r) { return assetType(r) === 'image'; }],
+    ['script', 'Scripts', function (r) { return assetType(r) === 'script'; }],
+    ['stylesheet', 'Stylesheets', function (r) { return assetType(r) === 'stylesheet'; }],
+    ['noTitle', 'Missing title', function (r) { return isPage(r) && !r.title; }],
+    ['noH1', 'Missing H1', function (r) { return isPage(r) && r.h1Count === 0; }],
+    ['multiH1', 'Multiple H1', function (r) { return isPage(r) && r.h1Count > 1; }],
+    ['noDescription', 'Missing meta description', function (r) { return isPage(r) && r.h1Count !== undefined && !r.metaDescription; }],
+    ['noAlt', 'Missing alt text', function (r) { return r.missingAlt; }],
     ['orphan', 'Orphan pages', function (r) { return r.orphan; }],
     ['robots', 'Blocked by robots.txt', function (r) { return r.scope === 'robots'; }],
     ['notchecked', 'Not checked', function (r) { return r.category === 'Not checked'; }]
   ];
   var PAGE_SIZE = 100;
+
+  function isPage(r) { return r.crawled && r.linkType === 'page' && r.category === 'OK'; }
+  // Reports from before 2.2 have no assetType; the link text says "(image)".
+  function assetType(r) {
+    if (r.linkType !== 'asset') return '';
+    if (r.assetType) return r.assetType;
+    for (var i = 0; i < r.foundOn.length; i++) {
+      var m = r.foundOn[i].anchors.join(' ').match(/\((image|script|stylesheet|icon|media|iframe)\)/);
+      if (m) return m[1];
+    }
+    return '';
+  }
+
+  // The text a search looks in. Pages a URL was found on are left out: they would match every link on a page.
+  function matches(r, q) {
+    if (!q) return true;
+    var fields = [r.url, r.redirectTo, r.finalUrl, r.title, r.h1].concat(r.alt || [], r.imageTitle || []);
+    for (var i = 0; i < fields.length; i++) {
+      if (fields[i] && String(fields[i]).toLowerCase().indexOf(q) !== -1) return true;
+    }
+    return r.foundOn.some(function (s) {
+      return s.anchors.some(function (a) { return a.toLowerCase().indexOf(q) !== -1; });
+    });
+  }
+
+  function searched() {
+    var q = state.query.toLowerCase();
+    return q ? results.filter(function (r) { return matches(r, q); }) : results;
+  }
   var state = { filter: countOf('issues') ? 'issues' : 'all', query: '', page: 0, sort: null, dir: 1 };
   var expanded = {};
 
@@ -167,16 +205,7 @@
 
   function filtered() {
     var fn = FILTERS.filter(function (f) { return f[0] === state.filter; })[0][2];
-    var q = state.query.toLowerCase();
-    var rows = results.filter(fn);
-    if (q) {
-      rows = rows.filter(function (r) {
-        if (r.url.toLowerCase().indexOf(q) !== -1 || (r.redirectTo || '').toLowerCase().indexOf(q) !== -1) return true;
-        return r.foundOn.some(function (s) {
-          return s.page.toLowerCase().indexOf(q) !== -1 || s.anchors.some(function (a) { return a.toLowerCase().indexOf(q) !== -1; });
-        });
-      });
-    }
+    var rows = searched().filter(fn);
     if (state.sort) {
       var val = {
         status: function (r) { return r.status == null ? (r.error ? 999 : 1000) : r.status; },
@@ -206,7 +235,8 @@
     if (r.error) sub += '<div class="sub">' + esc(r.error) + '</div>';
 
     var tags = '<span class="tag">' + esc(r.type) + '</span><span class="tag">' + esc(SCOPES[r.scope] || r.scope) + '</span>';
-    if (r.linkType === 'asset') tags += '<span class="tag">asset</span>';
+    if (r.linkType === 'asset') tags += '<span class="tag">' + esc(assetType(r) || 'asset') + '</span>';
+    if (r.missingAlt) tags += '<span class="tag">no alt</span>';
     if (r.inSitemap) tags += '<span class="tag">sitemap</span>';
     if (r.orphan) tags += '<span class="tag">orphan</span>';
 
@@ -228,12 +258,17 @@
         detail += '<h4>Found on</h4><ul>' + r.foundOn.map(function (s) {
           var via = s.kind === 'redirect' ? ' <span class="tag">redirect</span>' : s.kind === 'sitemap' ? ' <span class="tag">sitemap</span>' : '';
           var anchors = s.anchors.filter(function (a) { return a.charAt(0) !== '('; });
+          var alt = s.alt ? (s.alt.length ? ' <span class="anchor">— alt “' + esc(s.alt.join('”, “')) + '”</span>' : '') + (s.missingAlt ? ' <span class="tag">no alt</span>' : '') : '';
           return '<li><a href="' + esc(s.page) + '" target="_blank" rel="noopener noreferrer">' + esc(s.page) + '</a>' + via +
-            (anchors.length ? ' <span class="anchor">— “' + esc(anchors.join('”, “')) + '”</span>' : '') +
+            (anchors.length ? ' <span class="anchor">— “' + esc(anchors.join('”, “')) + '”</span>' : '') + alt +
             (s.count > 1 ? ' <span class="tag">×' + s.count + '</span>' : '') + '</li>';
         }).join('') + '</ul>';
       }
       if (r.title) detail += '<div class="sub">Title: ' + esc(r.title) + '</div>';
+      if (r.h1) detail += '<div class="sub">H1: ' + esc(r.h1) + (r.h1Count > 1 ? ' (' + r.h1Count + ' H1s)' : '') + '</div>';
+      if (r.metaDescription) detail += '<div class="sub">Meta description: ' + esc(r.metaDescription) + '</div>';
+      if (r.alt && r.alt.length) detail += '<div class="sub">Alt text: “' + esc(r.alt.join('”, “')) + '”</div>';
+      if (r.imageTitle && r.imageTitle.length) detail += '<div class="sub">Image title: “' + esc(r.imageTitle.join('”, “')) + '”</div>';
       if (r.responseTime != null) detail += '<div class="sub">Response: ' + r.responseTime + ' ms' + (r.contentType ? ' · ' + esc(r.contentType) : '') + '</div>';
       html += '<tr class="detail"><td></td><td colspan="3">' + detail + '</td></tr>';
     }
@@ -241,8 +276,9 @@
   }
 
   function render() {
+    var pool = searched();
     $('chips').innerHTML = FILTERS.map(function (f) {
-      var n = results.filter(f[2]).length;
+      var n = pool.filter(f[2]).length;
       if (!n && ['all', 'issues', state.filter].indexOf(f[0]) === -1) return '';
       return '<button type="button" class="chip' + (f[0] === state.filter ? ' active' : '') + '" data-filter="' + esc(f[0]) + '">' + esc(f[1]) + '<small>' + n.toLocaleString() + '</small></button>';
     }).join('');
@@ -252,7 +288,12 @@
     if (state.page >= pages) state.page = pages - 1;
     var slice = rows.slice(state.page * PAGE_SIZE, (state.page + 1) * PAGE_SIZE);
 
-    $('tbody').innerHTML = slice.length ? slice.map(rowHtml).join('') : '<tr><td colspan="4" class="empty">No URLs match this filter.</td></tr>';
+    var empty = 'No URLs match this filter.';
+    // The search found URLs, just not under the selected filter.
+    if (state.query && state.filter !== 'all' && pool.length) {
+      empty = 'No matches in this filter.<br><button type="button" data-filter="all">Show all ' + pool.length.toLocaleString() + ' match' + (pool.length === 1 ? '' : 'es') + '</button>';
+    }
+    $('tbody').innerHTML = slice.length ? slice.map(rowHtml).join('') : '<tr><td colspan="4" class="empty">' + empty + '</td></tr>';
     $('pager').innerHTML = rows.length > PAGE_SIZE
       ? '<button type="button" data-page="-1"' + (state.page === 0 ? ' disabled' : '') + '>‹ Prev</button><span>Page ' + (state.page + 1) + ' of ' + pages + ' · ' + rows.length.toLocaleString() + ' URLs</span><button type="button" data-page="1"' + (state.page >= pages - 1 ? ' disabled' : '') + '>Next ›</button>'
       : '<span>' + rows.length.toLocaleString() + ' URLs</span>';
@@ -273,10 +314,10 @@
   }
 
   $('csvBtn').addEventListener('click', function () {
-    var lines = [['URL', 'Found On', 'Redirect To', 'Status', 'Category', 'Type', 'Final URL', 'Final Status'].join(',')];
+    var lines = [['URL', 'Found On', 'Redirect To', 'Status', 'Category', 'Type', 'Final URL', 'Final Status', 'Title', 'H1', 'Meta Description', 'Alt Text'].join(',')];
     filtered().forEach(function (r) {
       var foundOn = r.foundOn.map(function (s) { return s.page; }).join('\n');
-      lines.push([r.url, foundOn, r.redirectTo, r.error || r.status, r.category, r.type, r.finalUrl, r.finalStatus].map(csvCell).join(','));
+      lines.push([r.url, foundOn, r.redirectTo, r.error || r.status, r.category, r.type, r.finalUrl, r.finalStatus, r.title, r.h1, r.metaDescription, (r.alt || []).join(' | ')].map(csvCell).join(','));
     });
     download('http-status-report.csv', 'text/csv', '\ufeff' + lines.join('\r\n'));
   });
@@ -301,6 +342,7 @@
     render();
   });
   $('tbody').addEventListener('click', function (e) {
+    if (e.target.closest('[data-filter]')) return setFilter(e);
     if (e.target.closest('a')) return;
     var tr = e.target.closest('tr.row');
     if (!tr) return;

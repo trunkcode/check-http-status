@@ -1,5 +1,20 @@
 # check-http-status changelog
 
+## 2.2.0 - Unreleased
+
+### New
+
+- Crawled pages record the first `h1`, the number of H1s (`h1Count`) and the `metaDescription`
+- Assets record where they came from (`assetType`: `image`, `script`, `stylesheet`, `icon`, `media` or `iframe`)
+- Images record their `alt` texts and `title` attributes, per page and in total, and `missingAlt` when an `<img>` has no `alt` attribute
+- Excel and CSV reports have Asset Type, H1, # H1, Meta Description, Alt Text, Image Title and Missing Alt columns
+- HTML report: filters for images, scripts, stylesheets, missing title, missing or multiple H1, missing meta description and missing alt text
+
+### Fixed
+
+- HTML report: search only looked inside the selected filter (*All issues* by default), so a URL without an issue was never found. Filter counts now follow the search, and a search with no matches in the selected filter offers to show all matches
+- HTML report: search no longer matches every link on a page whose URL contains the search text; it looks in the URL, redirect, title, H1, link text and alt text
+
 ## 2.1.0 - Oct 2, 2026
 
 ### New
