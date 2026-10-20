@@ -1,5 +1,13 @@
 # check-http-status changelog
 
+## Unreleased
+
+### Fixed
+
+- HTML report: the selected filter and warning badges now meet WCAG AA colour contrast in light and dark mode
+- Website: main landmark, keyboard-scrollable code panels and options table, and readable buttons in dark mode
+- Security: `uuid` is forced to 11.1.1 or newer (via `exceljs`)
+
 ## 2.2.0 - Oct 19, 2026
 
 ### New
