@@ -1,5 +1,13 @@
 # check-http-status changelog
 
+## 2.2.1 - Oct 20, 2026
+
+### Fixed
+
+- HTML report: the selected filter and warning badges now meet WCAG AA colour contrast in light and dark mode
+- Website: main landmark, keyboard-scrollable code panels and options table, and readable buttons in dark mode
+- Security: this repo forces `uuid` 11.1.1 or newer (used by `exceljs`). npm doesn't pass `overrides` on to apps, so apps can add `"overrides": { "uuid": "^11.1.1" }` to clear the alert
+
 ## 2.2.0 - Oct 19, 2026
 
 ### New
