@@ -21,7 +21,7 @@ body:
     id: version
     attributes:
       label: check-http-status version
-      placeholder: "2.2.0"
+      placeholder: "2.2.1"
     validations:
       required: true
   - type: input
