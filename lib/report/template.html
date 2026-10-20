@@ -7,13 +7,13 @@
 <style>
   :root {
     --bg: #f5f7fa; --card: #fff; --text: #1d2733; --muted: #607085; --border: #dde3ea;
-    --accent: #2563eb; --ok: #15803d; --ok-bg: #e6f4ea; --warn: #a16207; --warn-bg: #fff4d6;
+    --accent: #2563eb; --accent-strong: #1d4ed8; --ok: #15803d; --ok-bg: #e6f4ea; --warn: #854d0e; --warn-bg: #fff4d6;
     --bad: #b91c1c; --bad-bg: #fde2e1; --gray-bg: #eef1f5;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg: #0f141a; --card: #171e26; --text: #e4e9ef; --muted: #8b9aab; --border: #2a3440;
-      --accent: #60a5fa; --ok: #4ade80; --ok-bg: #12301d; --warn: #facc15; --warn-bg: #3a300c;
+      --accent: #60a5fa; --accent-strong: #1e40af; --ok: #4ade80; --ok-bg: #12301d; --warn: #facc15; --warn-bg: #3a300c;
       --bad: #f87171; --bad-bg: #3b1515; --gray-bg: #222b35;
     }
   }
@@ -36,7 +36,8 @@
   button:disabled { opacity: .45; cursor: default; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
   .chip { border-radius: 999px; padding: 4px 11px; font-size: 13px; }
-  .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chip.active { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+  .chip.active small { opacity: 1; }
   .chip small { opacity: .75; margin-left: 4px; }
   .tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
   table { border-collapse: collapse; width: 100%; min-width: 720px; }

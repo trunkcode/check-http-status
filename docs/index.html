@@ -8,13 +8,13 @@
 <style>
   :root {
     --bg: #f7f8fa; --surface: #fff; --text: #17202b; --muted: #5d6b7c; --border: #e1e6ec;
-    --accent: #2563eb; --accent-soft: #e8efff; --code-bg: #0f1720; --code-text: #d8e1ea;
+    --accent: #2563eb; --accent-soft: #e8efff; --on-accent: #fff; --code-bg: #0f1720; --code-text: #d8e1ea;
     --ok: #4ade80; --warn: #facc15; --bad: #f87171; --dim: #7c8a9b;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #0d1117; --surface: #151b23; --text: #e6edf3; --muted: #8d9aaa; --border: #262f3a;
-      --accent: #6aa3ff; --accent-soft: #15233d; --code-bg: #0a0e14;
+      --accent: #6aa3ff; --accent-soft: #15233d; --on-accent: #0d1117; --code-bg: #0a0e14;
     }
   }
   * { box-sizing: border-box; }
@@ -36,7 +36,7 @@
   .copy { background: transparent; color: var(--code-text); border: 1px solid #2c3845; border-radius: 6px; padding: 4px 10px; font: 13px system-ui, sans-serif; cursor: pointer; }
   .cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
   .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid var(--border); color: var(--text); background: var(--surface); }
-  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
   .terminal { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 0 0 14px; font: 12.5px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow: hidden; box-shadow: 0 20px 50px -20px rgba(0,0,0,.35); }
   .terminal .bar { display: flex; gap: 6px; padding: 12px 14px; }
   .terminal .bar i { width: 11px; height: 11px; border-radius: 50%; background: #2c3845; }
@@ -88,6 +88,8 @@
       <a class="gh" href="https://github.com/trunkcode/check-http-status">GitHub</a>
     </nav>
   </header>
+
+  <main>
 
   <div class="hero">
     <div>
@@ -157,11 +159,11 @@
     <h2>Usage</h2>
     <p class="section-lead">Requires Node.js 18.17 or newer. Run it with <code>npx</code>, install it globally, or use it as a library.</p>
     <div class="tabs" role="tablist">
-      <button class="tab" role="tab" aria-selected="true" data-tab="cli">Command line</button>
-      <button class="tab" role="tab" aria-selected="false" data-tab="node">Node.js</button>
-      <button class="tab" role="tab" aria-selected="false" data-tab="ci">GitHub Actions</button>
+      <button class="tab" role="tab" id="tab-cli" aria-controls="panel-cli" aria-selected="true" data-tab="cli">Command line</button>
+      <button class="tab" role="tab" id="tab-node" aria-controls="panel-node" aria-selected="false" data-tab="node">Node.js</button>
+      <button class="tab" role="tab" id="tab-ci" aria-controls="panel-ci" aria-selected="false" data-tab="ci">GitHub Actions</button>
     </div>
-    <div class="panel" id="panel-cli"><pre><span class="t-dim"># Crawl a site, skip /docs (still listed), save an Excel report</span>
+    <div class="panel" id="panel-cli" role="tabpanel" aria-labelledby="tab-cli" tabindex="0"><pre><span class="t-dim"># Crawl a site, skip /docs (still listed), save an Excel report</span>
 npx check-http-status https://www.example.com --exclude /docs -o report.xlsx
 
 <span class="t-dim"># Optional: add a sitemap to also find orphan pages; HTML report</span>
@@ -177,7 +179,7 @@ CHS_AUTH=user:pass npx check-http-status https://staging.example.com
 <span class="t-dim"># Install globally</span>
 npm install -g check-http-status
 check-http-status --help</pre></div>
-    <div class="panel" id="panel-node" hidden><pre>const checkHttpStatus = require('check-http-status');
+    <div class="panel" id="panel-node" role="tabpanel" aria-labelledby="tab-node" tabindex="0" hidden><pre>const checkHttpStatus = require('check-http-status');
 
 <span class="t-dim">// Just the website URL: pages are found by crawling, no sitemap needed</span>
 const report = await checkHttpStatus({
@@ -199,7 +201,7 @@ const report = await checkHttpStatus({
 for (const r of report.results.filter((r) => r.category === 'Not Found')) {
   console.log(r.url, 'found on', r.foundOn.map((s) => s.page));
 }</pre></div>
-    <div class="panel" id="panel-ci" hidden><pre><span class="t-dim"># .github/workflows/links.yml</span>
+    <div class="panel" id="panel-ci" role="tabpanel" aria-labelledby="tab-ci" tabindex="0" hidden><pre><span class="t-dim"># .github/workflows/links.yml</span>
 name: Check links
 on:
   schedule: [{ cron: '0 6 * * 1' }]
@@ -219,7 +221,7 @@ jobs:
   <section id="options">
     <h2>Options</h2>
     <p class="section-lead">The CLI flags and Node.js options are equivalent. Run <code>check-http-status --help</code> for the full list.</p>
-    <div class="tablewrap">
+    <div class="tablewrap" role="region" aria-label="Options" tabindex="0">
       <table class="opts">
         <thead><tr><th>CLI</th><th>Node.js</th><th>Default</th><th>Description</th></tr></thead>
         <tbody>
@@ -266,6 +268,8 @@ jobs:
       </div>
     </div>
   </section>
+
+  </main>
 
   <footer>
     <span>MIT licensed · by <a href="https://www.trunkcode.com/">TrunkCode</a></span>
